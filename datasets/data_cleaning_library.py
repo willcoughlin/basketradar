@@ -22,14 +22,17 @@ class clean_data:
       """
       returns location of game - based on alphabetic characters in match_id
       """
-      df['game_location'] = df['match_id'].str.replace('[^a-zA-Z]', '', regex=True)
+      df = df.copy()
+      df.loc[:, 'game_location'] = df['match_id'].str.replace('[^a-zA-Z]', '', regex=True)
       return df[['date','game_location','shotX','shotY','quarter','player','team','made','distance','shot_type']]
 
     def get_quarter(self,df):
       """
       Instead of "1st quarter" - converts quarter column to numeric (i.e. 1)
       """
-      df['quarter'] = df['quarter'].str.replace('[^0-9]', '', regex=True)
+      df = df.copy()
+      df.loc[:, 'quarter'] = df['quarter'].str.replace('[^0-9]', '', regex=True)
+
 
       return df
 
@@ -37,7 +40,8 @@ class clean_data:
       """
       Instead of "2-pointer" or "3-pointer" - convert shot_type column to 2 or 3 (I double checked that the dataset does not include free throws)
       """
-      df['shot_type'] = df['shot_type'].str.replace('[^0-9]', '', regex=True)
+      df = df.copy()
+      df.loc[:, 'shot_type'] = df['shot_type'].str.replace('[^0-9]', '', regex=True)
 
       return df
     
@@ -108,3 +112,21 @@ class clean_data:
       df = self.assign_zone(df)
 
       return df
+    
+
+if __name__ == "__main__":
+   ## here's how you would use the library
+   import matplotlib.pyplot as plt
+   from data_cleaning_library import clean_data ## i know this step is completely pointless, but this section is really meant to be copied into another group member's code
+   instance1 = clean_data('nov2k_clean.csv')
+   clean_df = instance1.full_clense()
+   print(clean_df.head())
+
+   ## sample visual for zones
+   plt.figure(figsize=(8, 6))
+   scatter = plt.scatter(clean_df['shotX'], clean_df['shotY'], c=clean_df['zone'])
+   plt.colorbar(scatter, label='Zone')
+   plt.title('NBA Shots with Zone Coloring')
+   plt.xlabel('Shot X')
+   plt.ylabel('Shot Y')
+   plt.show()
