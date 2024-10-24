@@ -98,7 +98,7 @@ class clean_data:
 
     def assign_zone(self,df):
       """
-      assigns the zones created in "assign_zone"
+      assigns the zones created in "get_zone"
       """
       df['zone'] = df.apply(lambda row: self.get_zone(row['shotX'], row['shotY']), axis=1)
       return df
@@ -117,7 +117,7 @@ class clean_data:
 if __name__ == "__main__":
    ## here's how you would use the library
    import matplotlib.pyplot as plt
-   from data_cleaning_library import clean_data ## i know this step is completely pointless, but this section is really meant to be copied into another group member's code
+   from data_cleaning_library import clean_data ## i know this step is completely pointless in this file, but this section is really meant to be copied into another group member's code
    instance1 = clean_data('nov2k_clean.csv')
    clean_df = instance1.full_clense()
    print(clean_df.head())
