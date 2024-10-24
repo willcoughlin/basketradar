@@ -8,9 +8,28 @@ class clean_data:
       """
       asserts dataframe has correct columns
       """
-      required_columns = ['date','match_id','shotX','shotY','quarter','player','team','made','distance','shot_type']
+      required_columns = ['match_id','shotX','shotY','quarter','player','team','made','distance','shot_type']
 
       assert set(required_columns).issubset(df.columns), f"You have missing columns {set(required_columns)-set(df.columns)} is missing!"
+
+    def extract_date(self,match_id):
+        """
+        extracts MM/DD/YYYY from match_id column
+        """
+        year = match_id[:4]  # first 4 are year
+        month = match_id[4:6]  # next 2 are month
+        day = match_id[6:8]  # last 2 are day
+        return f"{month}/{day}/{year}"  # formatting
+
+
+    def get_date_column(self,df):
+       """
+       create a date column based on match id
+       """
+       df['date'] = df['match_id'].apply(self.extract_date)
+
+       return df
+
 
     def remove_columns(self,df):
       """
@@ -105,7 +124,8 @@ class clean_data:
 
     def full_clense(self):
       self.assert_columns(self.df)
-      df = self.remove_columns(self.df)
+      df = self.get_date_column(self.df)
+      df = self.remove_columns(df)
       df = self.get_location(df)
       df = self.get_quarter(df)
       df = self.shot_type(df)
