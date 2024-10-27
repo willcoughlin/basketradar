@@ -7,7 +7,7 @@ import shutil
 
 def download_data():
     # Define the directory name for the dataset
-    dataset_dir = 'nba'
+    dataset_dir = 'data'
     
     ### checking if dataset exists. if it does, it won't be downloaded again
     if not os.path.isdir(dataset_dir):
@@ -34,7 +34,7 @@ def download_data():
 
 def stack_csvs(output_file):
     # Define the input folder as the "nba" directory in the current working directory
-    input_folder = os.path.join(os.getcwd(), 'nba/nba')
+    input_folder = os.path.join(os.getcwd(), 'data/nba')
     dataframes = []
     
     # Loop through all files in the input folder
@@ -64,16 +64,16 @@ def retrieve_and_clean_data():
     download_data()  ### downloading
     
     ## just making sure that the final dataset does not already exist. If it doesn't exist, the csv's are stacked.
-    final_dataset_path = os.path.join(os.getcwd(), 'final_dataset.csv')
+    final_dataset_path = os.path.join(os.getcwd(), 'data/combined_dataset.csv')
     if not os.path.isfile(final_dataset_path):
-        stack_csvs('final_dataset.csv')
+        stack_csvs('data/combined_dataset.csv')
         
     # data cleaning script - doing the same thing to make sure it doesn't already exist
-    cleaned_dataset_path = os.path.join(os.getcwd(), 'cleaned_final_dataset.csv')
+    cleaned_dataset_path = os.path.join(os.getcwd(), 'data/cleaned_final_dataset.csv')
     if not os.path.isfile(cleaned_dataset_path):
-        data_cleaning(final_dataset_path).to_csv('cleaned_final_dataset.csv')
+        data_cleaning(final_dataset_path).to_csv('data/cleaned_final_dataset.csv')
     
-    return pd.read_csv('cleaned_final_dataset.csv')
+    return pd.read_csv('data/cleaned_final_dataset.csv')
 
 if __name__ == "__main__":
     df = retrieve_and_clean_data()
