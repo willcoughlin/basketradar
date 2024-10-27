@@ -7,10 +7,11 @@ import plotly.express as px
 df = pd.read_csv('https://raw.githubusercontent.com/plotly/datasets/master/gapminder2007.csv')
 
 # Initialize the app
-app = Dash()
+dash_app = Dash()
+app = dash_app.server
 
 # App layout
-app.layout = [
+dash_app.layout = [
     html.Div(children='My First App with Data and a Graph'),
     dash_table.DataTable(data=df.to_dict('records'), page_size=10),
     dcc.Graph(figure=px.histogram(df, x='continent', y='lifeExp', histfunc='avg'))
@@ -18,4 +19,4 @@ app.layout = [
 
 # Run the app
 if __name__ == '__main__':
-    app.run(debug=True)
+    dash_app.run(debug=True)
