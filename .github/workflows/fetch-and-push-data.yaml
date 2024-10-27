@@ -46,6 +46,9 @@ jobs:
       - name: Run script
         run: python load_and_clean_data.py
 
+      - name: Delete raw data 
+        run: rm -r data/nba
+        
       - uses: bacongobbler/azure-blob-storage-upload@main
         with:
           source_dir: 'data_processing/data'
