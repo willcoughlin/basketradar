@@ -1,0 +1,63 @@
+name: Fetch and Push Data to Azure
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: fetch-and-push-data
+  cancel-in-progress: false
+
+env:
+  PYTHON_VERSION: '3.12'
+  STORAGE_URL: 'https://basketradarstorage.blob.core.windows.net'
+  BLOB_CONTAINER: cleandata
+
+jobs:
+  fetch-and-push:
+    runs-on: ubuntu-latest
+    environment: azure-storage
+    defaults:
+      run:
+        working-directory: data_processing
+    steps:
+      - uses: actions/checkout@v4
+
+       - name: Set up Python version
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Create and start virtual environment
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+
+      - name: Set up dependency caching for faster installs
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run script
+        run: python load_and_clean_data.py
+
+      - uses: bacongobbler/azure-blob-storage-upload@main
+        with:
+          source_dir: data
+          extra_args: '--pattern *.csv'
+          container_name: ${{ env.BLOB_CONTAINER }}
+          overwrite: 'true'
+          connection_string: ${{ secrets.CONNECTION_STRING }}
+
+      - name: Echo files
+        run: |
+          PREFIX="${{ env.STORAGE_URL }}/${{ env.BLOB_CONTAINER }}/"
+          echo "Uploaded files:"
+          for i in data/*; do 
+            [ -f "$i" ] && echo "  - $PREFIX$i"; 
+          done
