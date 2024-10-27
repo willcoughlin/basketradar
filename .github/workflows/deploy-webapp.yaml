@@ -1,13 +1,11 @@
-name: Build and deploy Python app to Azure Web App
+name: Deploy to Azure
 
 env:
-  AZURE_WEBAPP_NAME: basketradar   # set this to your application's name
-  PYTHON_VERSION: '3.12'               # set this to the Python version to use
+  AZURE_WEBAPP_NAME: basketradar
+  PYTHON_VERSION: '3.12'
 
 on:
-  push:
-    branches:
-      - webapp-starter  # TODO: change this
+  workflow_dispatch:
 
 jobs:
   build:
