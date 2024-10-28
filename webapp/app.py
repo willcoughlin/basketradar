@@ -69,7 +69,7 @@ controls_metric = dbc.Card(
     ],
 )
 
-app.layout = dbc.Container(
+dash_app.layout = dbc.Container(
     [
         html.H1("BasketRadar"),
         html.Hr(),
@@ -127,7 +127,7 @@ app.layout = dbc.Container(
 )
 
 # update dropdown options based on the other dropdowns
-@app.callback(
+@dash_app.callback(
     Output('crossfilter-player', 'options'),
     Input('crossfilter-team', 'value'),
     Input('crossfilter-year', 'value')
@@ -142,7 +142,7 @@ def update_player_options(selected_team, selected_year):
               [{'label': player, 'value': player} for player in dff['player'].unique()]
     return players
 
-@app.callback(
+@dash_app.callback(
     Output('crossfilter-team', 'options'),
     Input('crossfilter-player', 'value'),
     Input('crossfilter-year', 'value')
@@ -157,7 +157,7 @@ def update_team_options(selected_player, selected_year):
             [{'label': team, 'value': team} for team in dff['team'].unique()]
     return teams
 
-@app.callback(
+@dash_app.callback(
     Output('crossfilter-year', 'options'),
     Input('crossfilter-player', 'value'),
     Input('crossfilter-team', 'value')
@@ -173,7 +173,7 @@ def update_year_options(selected_player, selected_team):
     return years
 
 # player image - just need to figure out how to pull player ID first 
-# @app.callback(
+# @dash_app.callback(
 #     Output(component_id='player-image', component_property='src'),
 #     Input(component_id='player-select', component_property='value')
 # )
@@ -181,7 +181,7 @@ def update_year_options(selected_player, selected_team):
 #     return 'https://cdn.nba.com/headshots/nba/latest/1040x760/%d.png' % pid
 
 # create & update plots
-@app.callback(
+@dash_app.callback(
     Output('distance-scatter', 'figure'),
     Output('shot-map', 'figure'),
     Output('moving-average-2pt', 'figure'),
@@ -350,4 +350,4 @@ def update_graphs(player_name, team, year, metric):
     return scatter_fig, shot_map_fig, fig_moving_avg_2pt, fig_moving_avg_3pt
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    dash_app.run(debug=True)
