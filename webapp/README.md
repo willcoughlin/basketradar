@@ -10,7 +10,7 @@
   `python -m venv .venv`
 
 2. Activate your virtual environment:  
-  `.venv\Scripts\Activate.ps1` from Powershell or `source .venv/Scripts/activate` from bash.
+  `.venv\Scripts\Activate.ps1` from Powershell or `source .venv/Scripts/activate` from bash or `source .venv/bin/activate` for Mac.
 
 ## Installing Dependencies
 
