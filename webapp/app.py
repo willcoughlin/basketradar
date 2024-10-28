@@ -1,76 +1,128 @@
 from dash import Dash, html, dcc, Input, Output, callback
+import dash_bootstrap_components as dbc
 import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from utils import draw_plotly_court
 
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP],  suppress_callback_exceptions=True)
 
-app = Dash(__name__, external_stylesheets=external_stylesheets)
+df = pd.read_csv('https://basketradarstorage.blob.core.windows.net/cleandata/nov2k_clean_with_zones.csv')
 
-df = pd.read_csv('https://raw.githubusercontent.com/willcoughlin/basketradar/refs/heads/main/data_processing/nov2k_clean_with_zones.csv?token=GHSAT0AAAAAACZNNLAHCDQCH762RPTHGXY6ZY65TEA')
-
-markdown_text = '''
-# BasketRadar
-'''
-
-app.layout = html.Div([
-    dcc.Markdown(children=markdown_text),
-
-    # filters
-    html.Div([
-        html.Label('Player'),
-        dcc.Dropdown(
-            id='crossfilter-player',
-            options=[{'label': 'All Players', 'value': 'all_values'}] +
-                    [{'label': player, 'value': player} for player in df['player'].unique()],
-            value='all_values'
+controls_filters = dbc.Card(
+    [
+        html.Div(
+            [
+                dbc.Label('Player'),
+                dcc.Dropdown(
+                    id='crossfilter-player',
+                    options=[{'label': 'All Players', 'value': 'all_values'}] +
+                            [{'label': player, 'value': player} for player in df['player'].unique()],
+                    value='all_values'
+                ),
+            ], 
         ),
-        html.Label('Team'),
-        dcc.Dropdown(
-            id='crossfilter-team',
-            options=[{'label': 'All Teams', 'value': 'all_values'}] +
-                    [{'label': team, 'value': team} for team in df['team'].unique()],
-            value='all_values'
+        html.Div(
+            [
+                dbc.Label('Team'),
+                dcc.Dropdown(
+                    id='crossfilter-team',
+                    options=[{'label': 'All Teams', 'value': 'all_values'}] +
+                            [{'label': team, 'value': team} for team in df['team'].unique()],
+                    value='all_values'
+                ),
+            ],
         ),
-        html.Label('Year'),
-        dcc.Dropdown(
-            id='crossfilter-year',
-            options=[{'label': 'All Years', 'value': 'all_values'}] +
-                    [{'label': year, 'value': year} for year in df['date'].str[:4].unique()],
-            value='all_values'
+        html.Div(
+            [
+                dbc.Label('Year'),
+                dcc.Dropdown(
+                    id='crossfilter-year',
+                    options=[{'label': 'All Years', 'value': 'all_values'}] +
+                            [{'label': year, 'value': year} for year in df['date'].unique()],
+                    value='all_values'
+                ),
+            ], 
+        )
+    ],
+)
+
+controls_metric = dbc.Card(
+    [
+        html.Div(
+            [
+                dbc.Label('Metric'),
+                dcc.RadioItems(
+                    options=[
+                        {'label': 'Field Goal Percentage', 'value': 'Field Goal Percentage'},
+                        {'label': 'Shot Attempts', 'value': 'Shot Attempts'}
+                    ],
+                    value='Field Goal Percentage',
+                    id='shotmap-metric',
+                    labelStyle={'display': 'block'}
+                ),
+            ], className="mx-auto"
         ),
-    ], 
-    style={'width': '49%'}
-    ),
+    ],
+)
 
-    # distance scatter plot
-    html.Div([
-        dcc.Graph(id='distance-scatter'),
-    ], style={'width': '49%', 'padding': '20 20'}),
-
-    # radio button filter and shot map
-    html.Div([
-        dcc.RadioItems(
-            ['Field Goal Percentage', 'Shot Attempts'],
-            'Field Goal Percentage',
-            id='shotmap-metric',
-            labelStyle={'display': 'inline-block', 'marginTop': '10px'}
+app.layout = dbc.Container(
+    [
+        html.H1("BasketRadar"),
+        html.Hr(),
+        dbc.Row(
+            [
+                dbc.Col(controls_filters, md=6, className="text-center"),
+                dbc.Col(
+                    [
+                        dbc.Row(
+                            [
+                                dbc.Col(dcc.Markdown(children='### Player Image', className="text-center")),
+                                dbc.Col(dcc.Markdown(children='### Team Image', className="text-center"))
+                            ],
+                            align="center"
+                        ),
+                    ],
+                ),
+            ],
+            align="center",justify="center"
         ),
-        dcc.Graph(id='shot-map')
-    ], 
-    style={'width': '49%'}
-    ),
-
-     # moving averages trend charts  
-    html.Div([
-        dcc.Graph(id='moving-average-2pt'),
-        dcc.Graph(id='moving-average-3pt')
-    ], style={'width': '49%', 'display': 'inline-block', 'padding': '20px 0'}),
-
-
-])
+        dbc.Row(
+            [
+                dbc.Col(
+                    dcc.Graph(id='distance-scatter'), 
+                    md=6,
+                    className="mx-auto" 
+                ),
+                dbc.Col(
+                    dcc.Graph(id='moving-average-2pt'), 
+                    md=6,
+                    className="mx-auto"
+                ),
+            ],
+            align="center",
+        ),
+        dbc.Row(
+            [
+                dbc.Col(
+                    [
+                        dbc.Row(dcc.Graph(id='shot-map'), className="mx-auto"),
+                        dbc.Row(controls_metric, className="mx-auto"),
+                    ],
+                    md=6
+                ),
+                dbc.Col(
+                    dcc.Graph(id='moving-average-3pt'), 
+                    md=6,
+                    className="mx-auto"
+                ),
+            ],
+            align="center",
+        ),
+    ],
+    fluid=True,
+)
 
 # update dropdown options based on the other dropdowns
 @app.callback(
@@ -118,7 +170,15 @@ def update_year_options(selected_player, selected_team):
             [{'label': year, 'value': year} for year in dff['date'].str[:4].unique()]
     return years
 
-# create & update distance scatterplot
+# player image - just need to figure out how to pull player ID first 
+# @app.callback(
+#     Output(component_id='player-image', component_property='src'),
+#     Input(component_id='player-select', component_property='value')
+# )
+# def update_image(pid):
+#     return 'https://cdn.nba.com/headshots/nba/latest/1040x760/%d.png' % pid
+
+# create & update plots
 @app.callback(
     Output('distance-scatter', 'figure'),
     Output('shot-map', 'figure'),
@@ -185,7 +245,6 @@ def update_graphs(player_name, team, year, metric):
             # margin={'l': 40, 'b': 40, 't': 40, 'r': 0},
             hovermode='closest'
         )
-        
         return fig
 
     def update_shot_map(dff, metric):
@@ -203,16 +262,15 @@ def update_graphs(player_name, team, year, metric):
         ]
 
         if dff.empty:
-            return go.Figure()
+            return go.Figure(data=[go.Scatter(x=[], y=[], mode='text', text=["No data available for the selected filters."])])
 
         metric_histfunc = "avg" if metric == 'Field Goal Percentage' else "count"
-        other_metric = 'shot_count' if metric == 'Field Goal Percentage' else 'fg_rate'
 
         x_bin_size = 15
         y_bin_size = 15
-        fig = go.Figure()
-        draw_plotly_court(fig, fig_width=600, margins=0)
-        fig.add_trace(go.Histogram2dContour(
+        shotmap_fig = go.Figure()
+        draw_plotly_court(shotmap_fig, fig_width=700, margins=0)
+        shotmap_fig.add_trace(go.Histogram2dContour(
             x=dff['shotX_'],
             y=dff['shotY_'],
             z=dff['made_numeric'],
@@ -220,48 +278,72 @@ def update_graphs(player_name, team, year, metric):
             colorscale=custom_colorscale,
             line=dict(width=0),
             hoverinfo='x+y+z',
-            hovertemplate=f"<b>{metric}</b>: %{{z:.2%}}<br>{other_metric.capitalize()}: %{{other_value}}<br>X: %{{x}}<br>Y: %{{y}}",
+            hovertemplate=(
+                f"<b>{metric}</b>: %{{z:.2}}<br>"
+                f"X: %{{x}}<br>"
+                f"Y: %{{y}}"
+                "<extra></extra>"
+            ),
             xbins=dict(start=-250, end=250, size=x_bin_size),
             ybins=dict(start=-52.5, end=417.5, size=y_bin_size),
             showscale=True,
             colorbar=dict(title=metric)
         ))
+        return shotmap_fig
+    
+    def update_trend_charts(dff, point_value):
+        shot_type = f'{point_value}-pointer'
+        dfff=dff[dff['shot_type']==shot_type]
 
-        return fig
+        avg_df = dfff[['date', 'made_numeric']].groupby('date').mean()
+        moving_avg_df = avg_df.rolling(window=3).mean().reset_index()
+        average_rate = dfff['made_numeric'].mean()
+        moving_avg_df['marker_color'] = np.where(
+            moving_avg_df['made_numeric'] < average_rate, 'lightcoral',
+            np.where(moving_avg_df['made_numeric'] > average_rate, 'palegreen', 'lightgray')
+        )
 
-    def calculate_moving_averages(dff):
-        dff['two_point_pct'] = dff.apply(lambda row: row['made'] / row['attempts'] if row['shot_type'] == '2PT' else 0, axis=1)
-        dff['three_point_pct'] = dff.apply(lambda row: row['made'] / row['attempts'] if row['shot_type'] == '3PT' else 0, axis=1)
+        fig_moving_avg = go.Figure()
+        fig_moving_avg.add_trace(go.Scatter(
+            x=moving_avg_df['date'],
+            y=moving_avg_df['made_numeric'],
+            mode='lines+markers',
+            marker=dict(size=10, color=moving_avg_df['marker_color']),
+            line=dict(color='black'),
+            name=f'3-day moving average of {shot_type} %',
+            hovertemplate="3-day moving average: %{y:.2%}"
+                            "<extra></extra>"
+        ))
+        fig_moving_avg.add_trace(go.Scatter(
+            x=[moving_avg_df['date'].min(),moving_avg_df['date'].max()],
+            y=[average_rate, average_rate],
+            mode='lines',
+            line=dict(color='LightGray', dash='dash'),
+            name=f'average {shot_type} %',
+        ))
+        fig_moving_avg.update_yaxes(
+                    title='Accuracy',
+                    tickformat='2%',
+                    showgrid=True, 
+                    gridcolor='LightGray',
+                    dtick=0.2
+                )
+        fig_moving_avg.update_xaxes(
+            tickformat="%m/%d/%Y", 
+        )
+        fig_moving_avg.update_layout(title=f'Moving Average {point_value}-Point Percentage',
+                                    xaxis_title='Date', 
+                                    yaxis_title='Percentage', 
+                                    yaxis=dict(range=[0, 1], autorange=False),
+                                    plot_bgcolor='white',
+                                    hovermode='x unified')
 
-        moving_avg_2pt = dff[['date', 'two_point_pct']].groupby('date').mean().rolling(window=5).mean().reset_index()
-        moving_avg_3pt = dff[['date', 'three_point_pct']].groupby('date').mean().rolling(window=5).mean().reset_index()
-
-        return moving_avg_2pt, moving_avg_3pt
-
-    moving_avg_2pt, moving_avg_3pt = calculate_moving_averages(dff)
-
-    fig_moving_avg_2pt = go.Figure()
-    fig_moving_avg_2pt.add_trace(go.Scatter(
-        x=moving_avg_2pt['date'],
-        y=moving_avg_2pt['two_point_pct'],
-        mode='lines+markers',
-        name='2-Point %',
-        line=dict(color='blue')
-    ))
-    fig_moving_avg_2pt.update_layout(title='Moving Average 2-Point Percentage', xaxis_title='Date', yaxis_title='Percentage', plot_bgcolor='white')
-
-    fig_moving_avg_3pt = go.Figure()
-    fig_moving_avg_3pt.add_trace(go.Scatter(
-        x=moving_avg_3pt['date'],
-        y=moving_avg_3pt['three_point_pct'],
-        mode='lines+markers',
-        name='3-Point %',
-        line=dict(color='green')
-    ))
-    fig_moving_avg_3pt.update_layout(title='Moving Average 3-Point Percentage', xaxis_title='Date', yaxis_title='Percentage', plot_bgcolor='white')
+        return fig_moving_avg
 
     scatter_fig = update_scatter(dff, agg_df)
     shot_map_fig = update_shot_map(dff, metric)
+    fig_moving_avg_2pt = update_trend_charts(dff, 2)
+    fig_moving_avg_3pt = update_trend_charts(dff, 3)
     
     return scatter_fig, shot_map_fig, fig_moving_avg_2pt, fig_moving_avg_3pt
 
