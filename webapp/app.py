@@ -6,9 +6,11 @@ import plotly.express as px
 import plotly.graph_objects as go
 from utils import draw_plotly_court
 
-app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP],  suppress_callback_exceptions=True)
+dash_app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP],  suppress_callback_exceptions=True)
+app = dash_app.server
 
-df = pd.read_csv('https://basketradarstorage.blob.core.windows.net/cleandata/nov2k_clean_with_zones.csv')
+# df = pd.read_csv('https://basketradarstorage.blob.core.windows.net/cleandata/nov2k_clean_with_zones.csv')
+df = pd.read_csv('https://basketradarstorage.blob.core.windows.net/cleandata/cleaned_final_dataset.csv')
 
 controls_filters = dbc.Card(
     [
