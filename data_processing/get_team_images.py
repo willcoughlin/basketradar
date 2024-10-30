@@ -1,6 +1,6 @@
 import pandas as pd 
 ## loading data
-df = pd.read_csv('cleaned_final_dataset.csv')
+df = pd.read_csv('data/cleaned_final_dataset.csv')
 
 # unique players
 unique_players = df['team'].unique()
@@ -12,4 +12,4 @@ def get_link(team):
 
 unique_df['logo_link'] = unique_df['team'].apply(get_link)
 
-unique_df.to_csv('team_images.csv')
+unique_df.to_csv('data/team_images.csv')

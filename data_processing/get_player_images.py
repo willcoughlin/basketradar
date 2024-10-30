@@ -1,7 +1,7 @@
 import pandas as pd
 
 ## loading data
-df = pd.read_csv('cleaned_final_dataset.csv')
+df = pd.read_csv('data/cleaned_final_dataset.csv')
 
 # unique players
 unique_players = df['player'].unique()
@@ -25,4 +25,4 @@ def get_image_link(scrape_name):
     return link
 unique_df['player_image_link'] = unique_df['scrape_name'].apply(get_image_link)
 
-unique_df.to_csv('player_images.csv')
+unique_df.to_csv('data/player_images.csv')
