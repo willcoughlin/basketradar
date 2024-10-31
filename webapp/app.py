@@ -12,6 +12,9 @@ app = dash_app.server
 df = pd.read_csv('https://basketradarstorage.blob.core.windows.net/cleandata/nov2k_clean_with_zones.csv')
 # df = pd.read_csv('https://basketradarstorage.blob.core.windows.net/cleandata/cleaned_final_dataset.csv')
 
+player_images = pd.read_csv('https://basketradarstorage.blob.core.windows.net/cleandata/player_images.csv')
+team_images = pd.read_csv('https://basketradarstorage.blob.core.windows.net/cleandata/team_images.csv')
+
 controls_filters = dbc.Card(
     [
         html.Div(
@@ -71,8 +74,17 @@ controls_metric = dbc.Card(
 
 dash_app.layout = dbc.Container(
     [
-        html.H1("BasketRadar"),
-        html.Hr(),
+        html.Div(
+            [
+                html.Img(src="https://basketradarstorage.blob.core.windows.net/misc/icon-light.png", width=60),
+                html.H1("BasketRadar", style={
+                    "display": "inline-block", 
+                    "vertical-align": "middle",
+                    "margin-bottom": "unset",
+                    "margin-left": "0.5rem"
+                })
+            ], style={"margin-top": "1rem", "margin-bottom": "1rem"}
+        ),
         dbc.Row(
             [
                 dbc.Col(controls_filters, md=6, className="text-center"),
@@ -80,8 +92,8 @@ dash_app.layout = dbc.Container(
                     [
                         dbc.Row(
                             [
-                                dbc.Col(dcc.Markdown(children='### Player Image', className="text-center")),
-                                dbc.Col(dcc.Markdown(children='### Team Image', className="text-center"))
+                                dbc.Col(id="player-img-container", class_name="text-center"),
+                                dbc.Col(id="team-img-container", class_name="text_center")
                             ],
                             align="center"
                         ),
@@ -172,13 +184,27 @@ def update_year_options(selected_player, selected_team):
             [{'label': year, 'value': year} for year in dff['date'].str[:4].unique()]
     return years
 
-# player image - just need to figure out how to pull player ID first 
-# @dash_app.callback(
-#     Output(component_id='player-image', component_property='src'),
-#     Input(component_id='player-select', component_property='value')
-# )
-# def update_image(pid):
-#     return 'https://cdn.nba.com/headshots/nba/latest/1040x760/%d.png' % pid
+@dash_app.callback(
+    Output('player-img-container', 'children'),
+    Input('crossfilter-player', 'value')
+)
+def update_player_image(selected_player):
+    if selected_player == 'all_values':
+        return dcc.Markdown(children='### All Players')
+
+    img_loc = player_images.loc[player_images.player == selected_player, :].player_image_link.values[0]
+    return html.Img(height=200, src=img_loc, alt=selected_player)
+
+@dash_app.callback(
+    Output('team-img-container', 'children'),
+    Input('crossfilter-team', 'value')
+)
+def update_team_image(selected_team):
+    if selected_team == 'all_values':
+        return dcc.Markdown(children='### All Teams')
+
+    img_loc = team_images.loc[team_images.team == selected_team, :].logo_link.values[0]
+    return html.Img(height=200, src=img_loc, alt=selected_team)
 
 # create & update plots
 @dash_app.callback(
