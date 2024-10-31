@@ -1,4 +1,5 @@
 import pandas as pd
+from unidecode import unidecode
 
 ## loading data
 df = pd.read_csv('data/cleaned_final_dataset.csv')
@@ -15,6 +16,7 @@ def create_scrape_name(player):
         scrape_name = last[:5] + first[:2] + "01" 
     else:
         scrape_name = parts[0][:5] + "01" 
+    scrape_name = unidecode(scrape_name)
     return scrape_name
 
 unique_df['scrape_name'] = unique_df['player'].apply(create_scrape_name)
