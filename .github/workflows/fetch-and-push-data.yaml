@@ -62,9 +62,6 @@ jobs:
           overwrite: 'true'
           connection_string: ${{ secrets.CONNECTION_STRING }}
 
-      - name: Delete raw data db
-        run: rm -r data/nba
-
       - uses: bacongobbler/azure-blob-storage-upload@main
         with:
           source_dir: 'data_processing/data'
