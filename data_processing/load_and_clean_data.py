@@ -109,7 +109,7 @@ def retrieve_and_clean_data():
         conn.commit()
         conn.close()
 
-    return pd.read_csv(cleaned_dataset_path)
+    return df
 
 if __name__ == "__main__":
     df = retrieve_and_clean_data()
