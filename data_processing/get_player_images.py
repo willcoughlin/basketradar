@@ -4,13 +4,14 @@ from unidecode import unidecode
 ## loading data
 df = pd.read_csv('data/cleaned_final_dataset.csv')
 
+
 # unique players
 unique_players = df['player'].unique()
 unique_df = pd.DataFrame(unique_players, columns=['player'])
 
 # create scrape_name
 def create_scrape_name(player):
-    parts = player.replace('.', '').lower().split()
+    parts = player.replace('.', '').replace("'",'').lower().split()
     if len(parts) == 2:
         first, last = parts
         scrape_name = last[:5] + first[:2] + "01" 
