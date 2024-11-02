@@ -78,6 +78,38 @@ def year_selector(df):
         }
     )
 
+def stat_slider(pct):
+    return html.Div(
+        [
+            html.Div(
+                [
+                    html.Div(
+                        style={
+                            'height': '10px', 
+                            'width': '10px',
+                            'margin': f'-2px calc(-3px + {round(pct * 100)}%)'
+                        }, 
+                        className='bg-primary rounded-circle'
+                    )
+                ],
+                style={
+                    'background-color': '#dee2e6',
+                    'height': '7px'
+                },
+                className='border border-secondary rounded'
+            ),
+            html.Div(
+                [
+                    html.Small('Low'),
+                    html.Small('Medium'),
+                    html.Small('High')
+                ],
+                style={'display': 'flex', 'justify-content': 'space-between'}
+            )
+        ],
+        className='mb-3'
+    )
+
 def create_filter_callbacks(dash_app, player_images, team_images, df):
     @dash_app.callback(
         Output('player-img-container', 'children'),

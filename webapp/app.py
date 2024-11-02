@@ -25,6 +25,15 @@ profile_content = dbc.Container(
                         dbc.Row([dbc.Col(profile.year_selector(df), md=12)])
                     ],
                     md=2
+                ),
+                dbc.Col(
+                    [
+                        dbc.Row([dbc.Col(profile.stat_slider(.33), md=12)]),
+                        dbc.Row([dbc.Col(profile.stat_slider(.53), md=12)]),
+                        dbc.Row([dbc.Col(profile.stat_slider(.89), md=12)]),
+                        dbc.Row([dbc.Col(profile.stat_slider(.03), md=12)])
+                    ],
+                    md=2
                 )
             ]
         ),
