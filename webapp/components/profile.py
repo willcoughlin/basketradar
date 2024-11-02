@@ -74,6 +74,7 @@ def year_selector(df):
         style={
             'width': '100%',
             'height': '70px',
+            'background-color': 'rgba(33, 37, 41, 0.03)'
         }
     )
 
