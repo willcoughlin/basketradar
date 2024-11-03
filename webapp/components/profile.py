@@ -1,5 +1,8 @@
 from dash import html, dcc, Output, Input
 import dash_bootstrap_components as dbc
+import dash_cytoscape as cyto
+
+# Basic filters
 
 def player_selector(df):
     return dbc.Card(
@@ -78,15 +81,6 @@ def year_selector(df):
         }
     )
 
-def stat_slider(val, min, max, marks, label):
-    return html.Div(
-        [
-            html.Label(label),
-            dcc.Slider(min, max, value=val, marks=marks, disabled=True, included=False, className='statSlider'),
-        ],
-        className='mb-3'
-    )
-
 def create_filter_callbacks(dash_app, player_images, team_images, df):
     @dash_app.callback(
         Output('player-img-container', 'children'),
@@ -155,3 +149,58 @@ def create_filter_callbacks(dash_app, player_images, team_images, df):
         years = [{'label': 'All Years', 'value': 'all_values'}] + \
                 [{'label': year, 'value': year} for year in dff['date'].str[:4].unique()]
         return years
+
+# Profile stats and clustering
+ 
+def stat_slider(val, min, max, marks, label):
+    return html.Div(
+        [
+            dbc.Label(label),
+            dcc.Slider(min, max, value=val, marks=marks, disabled=True, included=False, className='statSlider'),
+        ],
+    )
+
+def similarity_filters():
+    return html.Div(
+        [
+            dbc.Label('Search By:', html_for='similarity-filters'),
+            dbc.Checklist(
+                options=[
+                    {'label': 'Shooting Distance', 'value': 'dist'},
+                    {'label': 'Side Preference', 'value': 'side'},
+                    {'label': 'Accuracy', 'value': 'acc'},
+                    {'label': 'Top Quarter', 'value': 'quart'},
+                ],
+                id='similarity-filters',
+                className='mb-2'
+            ),
+            dbc.Label('Top Results:'),
+            html.Ol([
+                html.Li('Placeholder'),
+                html.Li('Placeholder'),
+                html.Li('Placeholder'),
+            ])
+        ]
+    )
+
+def similiarity_graph():
+    return html.Div([
+        cyto.Cytoscape(
+            id='similarity-graph',
+            layout={'name': 'random'},
+            style={'width': '100%', 'height': '300px'},
+            elements=[
+                {'data': {'id': 'one', 'label': 'Selected'}},
+                {'data': {'id': 'two', 'label': 'Similar 1'}},
+                {'data': {'id': 'three', 'label': 'Similar 2'}},
+                {'data': {'id': 'four', 'label': 'Similar 3'}},
+                {'data': {'id': 'five', 'label': 'Similar 4'}},
+                {'data': {'id': 'six', 'label': 'Similar 5'}},
+                {'data': {'source': 'one', 'target': 'two'}},
+                {'data': {'source': 'one', 'target': 'three'}},
+                {'data': {'source': 'one', 'target': 'four'}},
+                {'data': {'source': 'one', 'target': 'five'}},
+                {'data': {'source': 'one', 'target': 'six'}},
+            ]
+        )
+    ])

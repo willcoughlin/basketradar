@@ -28,13 +28,22 @@ profile_content = dbc.Container(
                 ),
                 dbc.Col(
                     [
+                        # dbc.Row([dbc.Col(html.H5('Player Profile'), md=12)]),
                         dbc.Row([dbc.Col(profile.stat_slider(.5, 0, 1, {0: 'Short', 0.5: 'Medium', 1: 'Long'}, 'Shooting Distance'), md=12)]),
                         dbc.Row([dbc.Col(profile.stat_slider(25, 0, 50, {0: 'Left', 25: 'Neutral', 50: 'Right'}, 'Side Preference'), md=12)]),
                         dbc.Row([dbc.Col(profile.stat_slider(.0, 0, 1, {0: '0%', 0.5: '50%', 1: '100%'}, 'Accuracy'), md=12)]),
-                        dbc.Row([dbc.Col(profile.stat_slider(1, 1, 4, {1: '1st', 2: '2nd', 3: '3rd', 4: '4th'}, 'Effective Quarter'), md=12)])
+                        dbc.Row([dbc.Col(profile.stat_slider(1, 1, 4, {1: '1st', 2: '2nd', 3: '3rd', 4: '4th'}, 'Top Quarter'), md=12)])
+                    ],
+                    md=3
+                ),
+                dbc.Col(
+                    [
+                        dbc.Row([dbc.Col(html.H5('Similar Players'), md=12)]),
+                        dbc.Row([dbc.Col(profile.similarity_filters())])
                     ],
                     md=2
-                )
+                ),
+                dbc.Col(profile.similiarity_graph(), md=3)
             ]
         ),
     ],
