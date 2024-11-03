@@ -5,7 +5,7 @@ import components.plots as plots
 import components.profile as profile
 from components.page import navbar
 
-dash_app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP],  suppress_callback_exceptions=True)
+dash_app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP, './assets/custom.css'],  suppress_callback_exceptions=True)
 app = dash_app.server
 
 df = pd.read_csv('https://basketradarstorage.blob.core.windows.net/cleandata/nov2k_clean_with_zones.csv')
@@ -28,10 +28,10 @@ profile_content = dbc.Container(
                 ),
                 dbc.Col(
                     [
-                        dbc.Row([dbc.Col(profile.stat_slider(.33), md=12)]),
-                        dbc.Row([dbc.Col(profile.stat_slider(.53), md=12)]),
-                        dbc.Row([dbc.Col(profile.stat_slider(.89), md=12)]),
-                        dbc.Row([dbc.Col(profile.stat_slider(.03), md=12)])
+                        dbc.Row([dbc.Col(profile.stat_slider(.5, 0, 1, {0: 'Short', 0.5: 'Medium', 1: 'Long'}, 'Shooting Distance'), md=12)]),
+                        dbc.Row([dbc.Col(profile.stat_slider(25, 0, 50, {0: 'Left', 25: 'Neutral', 50: 'Right'}, 'Side Preference'), md=12)]),
+                        dbc.Row([dbc.Col(profile.stat_slider(.0, 0, 1, {0: '0%', 0.5: '50%', 1: '100%'}, 'Accuracy'), md=12)]),
+                        dbc.Row([dbc.Col(profile.stat_slider(1, 1, 4, {1: '1st', 2: '2nd', 3: '3rd', 4: '4th'}, 'Effective Quarter'), md=12)])
                     ],
                     md=2
                 )

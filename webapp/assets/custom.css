@@ -1,0 +1,11 @@
+.statSlider .rc-slider {
+    background-color: unset;
+}
+.statSlider .rc-slider-rail {
+    background-color: #0d6efd;
+}
+.statSlider .rc-slider-handle, 
+.statSlider .rc-slider-dot,
+.statSlider .rc-slider-mark-text {
+    cursor: unset !important;
+}

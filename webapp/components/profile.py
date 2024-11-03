@@ -78,34 +78,11 @@ def year_selector(df):
         }
     )
 
-def stat_slider(pct):
+def stat_slider(val, min, max, marks, label):
     return html.Div(
         [
-            html.Div(
-                [
-                    html.Div(
-                        style={
-                            'height': '10px', 
-                            'width': '10px',
-                            'margin': f'-2px calc(-3px + {round(pct * 100)}%)'
-                        }, 
-                        className='bg-primary rounded-circle'
-                    )
-                ],
-                style={
-                    'background-color': '#dee2e6',
-                    'height': '7px'
-                },
-                className='border border-secondary rounded'
-            ),
-            html.Div(
-                [
-                    html.Small('Low'),
-                    html.Small('Medium'),
-                    html.Small('High')
-                ],
-                style={'display': 'flex', 'justify-content': 'space-between'}
-            )
+            html.Label(label),
+            dcc.Slider(min, max, value=val, marks=marks, disabled=True, included=False, className='statSlider'),
         ],
         className='mb-3'
     )
