@@ -34,7 +34,7 @@ def download_data():
 
 def stack_csvs(output_file):
     # Define the input folder as the "nba" directory in the current working directory
-    input_folder = os.path.join(os.getcwd(), 'data/nba')
+    input_folder = os.path.join(os.getcwd(), 'data')
     dataframes = []
     
     # Loop through all files in the input folder
@@ -98,7 +98,7 @@ def retrieve_and_clean_data():
         ''')
 
         # Load and round data for insertion
-        df = pd.read_csv(cleaned_dataset_path)  # Load cleaned data
+        df = pd.read_csv(cleaned_dataset_path)  
         df['shotX'] = df['shotX'].round(1)
         df['shotY'] = df['shotY'].round(1)
 
