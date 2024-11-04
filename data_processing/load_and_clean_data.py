@@ -1,9 +1,9 @@
 import pandas as pd
-import glob
 from data_cleaning_library import clean_data
-import kagglehub ## You may need to pip install
+import kagglehub
 import os
-import shutil 
+import shutil
+import sqlite3
 
 def download_data():
     # Define the directory name for the dataset
@@ -34,7 +34,7 @@ def download_data():
 
 def stack_csvs(output_file):
     # Define the input folder as the "nba" directory in the current working directory
-    input_folder = os.path.join(os.getcwd(), 'data')
+    input_folder = os.path.join(os.getcwd(), 'data/nba')
     dataframes = []
     
     # Loop through all files in the input folder
