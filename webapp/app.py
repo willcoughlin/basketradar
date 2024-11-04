@@ -46,7 +46,7 @@ profile_content = dbc.Container(
                 dbc.Col(
                     [
                         dbc.Row([dbc.Col(profile.stat_slider(None, 0, 22, {0: 'Short', 11: 'Medium', 22: 'Long'}, 'Shooting Distance', 'dist-slider'), md=12)]),
-                        dbc.Row([dbc.Col(profile.stat_slider(None, 15, 35, {12: 'Left', 25: 'Neutral', 38: 'Right'}, 'Side Preference', 'side-slider'), md=12)]),
+                        dbc.Row([dbc.Col(profile.stat_slider(None, 15, 35, {15: 'Left', 25: 'Neutral', 35: 'Right'}, 'Side Preference', 'side-slider'), md=12)]),
                         dbc.Row([dbc.Col(profile.stat_slider(None, 0, 1, {0: '0%', 0.5: '50%', 1: '100%'}, 'Accuracy', 'acc-slider'), md=12)]),
                         dbc.Row([dbc.Col(profile.stat_slider(None, 1, 4, {1: '1st', 2: '2nd', 3: '3rd', 4: '4th'}, 'Top Quarter', 'quarter-slider'), md=12)])
                     ],
