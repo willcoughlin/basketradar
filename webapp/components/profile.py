@@ -1,6 +1,7 @@
 from dash import html, dcc, Output, Input
 import dash_bootstrap_components as dbc
 import dash_cytoscape as cyto
+import pandas as pd
 
 # Basic filters
 
@@ -152,11 +153,11 @@ def create_filter_callbacks(dash_app, player_images, team_images, df):
 
 # Profile stats and clustering
  
-def stat_slider(val, min, max, marks, label):
+def stat_slider(val, min, max, marks, label, id):
     return html.Div(
         [
             dbc.Label(label),
-            dcc.Slider(min, max, value=val, marks=marks, disabled=True, included=False, className='statSlider'),
+            dcc.Slider(min, max, value=val, marks=marks, disabled=True, included=False, className='statSlider', id=id),
         ],
     )
 
@@ -204,3 +205,53 @@ def similiarity_graph():
             ]
         )
     ])
+
+def create_slider_callbacks(dash_app, conn):
+    @dash_app.callback(
+        [
+            Output('profile-slider-placeholder-col', 'className'),
+            Output('profile-slider-col', 'className'),
+            Output('similarity-filter-col', 'className'),
+            Output('similarity-graph-col', 'className'),
+            Output('similarity-graph-col', 'children'),
+        ],
+        [Input('crossfilter-player', 'value')]
+    )
+    def update_profile_col_visibility(selected_player):
+        if selected_player == 'all_values':
+            return '', 'd-none', 'd-none', 'd-none', None
+        return 'd-none', '', '', '', similiarity_graph()
+
+
+    @dash_app.callback(
+        [
+            Output('dist-slider', 'value'), 
+            Output('side-slider', 'value'), 
+            Output('acc-slider', 'value'), 
+            Output('quarter-slider', 'value')
+        ],
+        [Input('crossfilter-year', 'value'), Input('crossfilter-player', 'value'), Input('crossfilter-team', 'value')]
+    )
+    def update_profile_sliders(selected_year, selected_player, selected_team):
+        if selected_player == 'all_values':
+            return None, None, None, None
+        
+        if selected_team == 'all_values' and selected_year == 'all_values':
+            player_profile = pd.read_sql('select * from player_profiles where player = (?)', 
+                                         conn, params=(selected_player,))
+        elif selected_year == 'all_values':
+            player_profile = pd.read_sql('select * from player_profiles_by_team where player = (?) and team = (?)', 
+                                         conn, params=(selected_player, selected_team,))
+        elif selected_team == 'all_values':
+            player_profile = pd.read_sql('select * from player_profiles_by_year where player = (?) and year = (?)', 
+                                         conn, params=(selected_player, selected_year,))
+        else:
+            player_profile = pd.read_sql('select * from player_profiles_by_year where player = (?) and team = (?) and year = (?)', 
+                                         conn, params=(selected_player, selected_team, selected_year,))
+            
+        avg_dist = min(player_profile.avg_distance.item(), 21)
+        avg_side = max(min((50 - player_profile.avg_shotX.item()), 35), 15)
+        acc = player_profile.accuracy.item()
+        top_qtr = player_profile.top_quarter.item()
+
+        return avg_dist, avg_side, acc, top_qtr
