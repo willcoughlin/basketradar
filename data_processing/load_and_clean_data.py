@@ -1,9 +1,9 @@
 import pandas as pd
-import glob
 from data_cleaning_library import clean_data
-import kagglehub ## You may need to pip install
+import kagglehub
 import os
-import shutil 
+import shutil
+import sqlite3
 
 def download_data():
     # Define the directory name for the dataset
@@ -63,7 +63,7 @@ def data_cleaning(path_to_csv):
 def retrieve_and_clean_data():
     download_data()  ### downloading
     
-    ## just making sure that the final dataset does not already exist. If it doesn't exist, the csv's are stacked.
+    ## Ensure final dataset does not already exist. If it doesn't exist, stack CSVs.
     final_dataset_path = os.path.join(os.getcwd(), 'data/combined_dataset.csv')
     if not os.path.isfile(final_dataset_path):
         stack_csvs('data/combined_dataset.csv')
@@ -72,8 +72,44 @@ def retrieve_and_clean_data():
     cleaned_dataset_path = os.path.join(os.getcwd(), 'data/cleaned_final_dataset.csv')
     if not os.path.isfile(cleaned_dataset_path):
         data_cleaning(final_dataset_path).to_csv('data/cleaned_final_dataset.csv')
-    
-    return pd.read_csv('data/cleaned_final_dataset.csv')
+
+    # Check if SQLite database file exists
+    db_path = os.path.join(os.getcwd(), 'data/nba_shots.db')
+    if not os.path.isfile(db_path):
+        ### Only create the database if it doesn't already exist
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        # Create table if it does not exist
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS shots (
+                date TEXT,
+                game_location TEXT,
+                shotX REAL,
+                shotY REAL,
+                quarter INTEGER,
+                player TEXT,
+                team TEXT,
+                made BOOLEAN,
+                distance INTEGER,
+                shot_type INTEGER,
+                zone INTEGER
+            )
+        ''')
+
+        # Load and round data for insertion
+        df = pd.read_csv(cleaned_dataset_path)  
+        df['shotX'] = df['shotX'].round(1)
+        df['shotY'] = df['shotY'].round(1)
+
+        # Insert data into the database
+        df.to_sql('shots', conn, if_exists='replace', index=False)
+
+        # Commit changes and close connection
+        conn.commit()
+        conn.close()
+
+    return df
 
 if __name__ == "__main__":
     df = retrieve_and_clean_data()

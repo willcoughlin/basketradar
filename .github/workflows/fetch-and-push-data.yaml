@@ -62,6 +62,15 @@ jobs:
           overwrite: 'true'
           connection_string: ${{ secrets.CONNECTION_STRING }}
 
+      - uses: bacongobbler/azure-blob-storage-upload@main
+        with:
+          source_dir: 'data_processing/data'
+          extra_args: '--pattern *.db'
+          container_name: ${{ env.BLOB_CONTAINER }}
+          overwrite: 'true'
+          connection_string: ${{ secrets.CONNECTION_STRING }}
+
+
       - name: Echo files
         run: |
           PREFIX="${{ env.STORAGE_URL }}/${{ env.BLOB_CONTAINER }}/"
