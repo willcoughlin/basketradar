@@ -25,34 +25,31 @@ def create_player_profiles(conn, by_team=False, by_year=False):
     return pd.read_sql(sql_query, conn)
 
 def create_player_profile_tables(cursor):
-    cursor.execute(
+    cursor.executescript(
         """
             CREATE TABLE IF NOT EXISTS player_profiles (
                 player TEXT,
                 avg_distance REAL,
                 avg_shotX REAL,
                 accuracy_REAL,
-                top_quarter INTEGER,
-            )
-
+                top_quarter INTEGER
+            );
             CREATE TABLE IF NOT EXISTS player_profiles_by_team (
                 player TEXT,
                 team TEXT,
                 avg_distance REAL,
                 avg_shotX REAL,
                 accuracy_REAL,
-                top_quarter INTEGER,
-            )
-
+                top_quarter INTEGER
+            );
             CREATE TABLE IF NOT EXISTS player_profiles_by_year (
                 player TEXT,
                 year TEXT,
                 avg_distance REAL,
                 avg_shotX REAL,
                 accuracy_REAL,
-                top_quarter INTEGER,
-            )    
-
+                top_quarter INTEGER
+            );
             CREATE TABLE IF NOT EXISTS player_profiles_by_team_and_year (
                 player TEXT,
                 team TEXT,
@@ -60,14 +57,24 @@ def create_player_profile_tables(cursor):
                 avg_distance REAL,
                 avg_shotX REAL,
                 accuracy_REAL,
-                top_quarter INTEGER,
-            )          
+                top_quarter INTEGER
+            );
         """
     )
 
-if __name__ == 'main':
+def create_player_profile_indexes(cursor):
+    cursor.executescript(
+        """
+            CREATE INDEX IF NOT EXISTS idx_pprof ON player_profiles(player);
+            CREATE INDEX IF NOT EXISTS idx_pprof_team ON player_profiles_by_team(player, team);
+            CREATE INDEX IF NOT EXISTS idx_pprof_year ON player_profiles_by_year(player, year);
+            CREATE INDEX IF NOT EXISTS idx_pprof_team_year ON player_profiles_by_team_and_year(player, team, year);
+        """
+    )
+
+if __name__ == '__main__':
     conn = sqlite3.connect('data/nba_shots.db')
-    print('Connected to SQLite DB')
+    print('Connected to SQLite DB.')
 
     print('Creating profiles at different levels of aggregation...')
     player_profiles = create_player_profiles(conn)
@@ -95,4 +102,10 @@ if __name__ == 'main':
     player_profiles_by_year.to_sql('player_profiles_by_year', conn, if_exists='replace', index=False)
     player_profiles_by_team_and_year.to_sql('player_profiles_by_team_and_year', conn, if_exists='replace', index=False)
 
+    create_player_profile_indexes(cursor)
+    
+    conn.commit()
+    conn.close()
+
     print('Done.')
+    
