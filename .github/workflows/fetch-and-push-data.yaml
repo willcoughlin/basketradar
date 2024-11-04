@@ -52,7 +52,7 @@ jobs:
             python get_team_images.py
 
       - name: Aggregate player profiles
-        run: pyhon create_player_profiles.py
+        run: python create_player_profiles.py
 
       - name: Delete raw data 
         run: rm -r data/nba
