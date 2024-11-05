@@ -11,9 +11,6 @@ import requests
 dash_app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP, './assets/custom.css'],  suppress_callback_exceptions=True)
 app = dash_app.server
 
-df = pd.read_csv('https://basketradarstorage.blob.core.windows.net/cleandata/nov2k_clean_with_zones.csv')
-# df = pd.read_csv('https://basketradarstorage.blob.core.windows.net/cleandata/cleaned_final_dataset.csv')
-
 player_images = pd.read_csv('https://basketradarstorage.blob.core.windows.net/cleandata/player_images.csv')
 team_images = pd.read_csv('https://basketradarstorage.blob.core.windows.net/cleandata/team_images.csv')
 
@@ -120,7 +117,7 @@ dash_app.layout = html.Div(
     ]
 )
 
-plots.create_plot_callbacks(dash_app, df, conn)
+plots.create_plot_callbacks(dash_app, conn)
 profile.create_filter_callbacks(dash_app, player_images, team_images, conn)
 profile.create_slider_callbacks(dash_app, conn)
 

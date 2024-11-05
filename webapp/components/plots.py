@@ -30,7 +30,7 @@ controls_metric = dbc.Card(
     ],
 )
 
-def create_plot_callbacks(dash_app, df, conn):
+def create_plot_callbacks(dash_app, conn):
     # create & update plots
     @dash_app.callback(
         Output('distance-scatter', 'figure'),
