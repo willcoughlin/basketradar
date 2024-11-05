@@ -5,7 +5,8 @@ import pandas as pd
 
 # Basic filters
 
-def player_selector(df):
+def player_selector(conn):
+    all_players = [{'label': player, 'value': player} for player in pd.read_sql('select distinct player from player_profiles', conn).player]
     return dbc.Card(
         [
             dbc.CardBody(
@@ -21,8 +22,7 @@ def player_selector(df):
                 [
                     dcc.Dropdown(
                         id='crossfilter-player',
-                        options=[{'label': 'All Players', 'value': 'all_values'}] +
-                                [{'label': player, 'value': player} for player in df['player'].unique()],
+                        options=[{'label': 'All Players', 'value': 'all_values'}] + all_players,
                         value='all_values'
                     ),  
                 ]
@@ -34,7 +34,8 @@ def player_selector(df):
         }
     )
 
-def team_selector(df):
+def team_selector(conn):
+    all_teams = [{'label': team, 'value': team} for team in pd.read_sql('select distinct team from player_profiles_by_team order by team', conn).team]
     return dbc.Card(
         [
             dbc.CardBody(
@@ -49,8 +50,7 @@ def team_selector(df):
                 [
                     dcc.Dropdown(
                         id='crossfilter-team',
-                        options=[{'label': 'All Teams', 'value': 'all_values'}] +
-                                [{'label': team, 'value': team} for team in df['team'].unique()],
+                        options=[{'label': 'All Teams', 'value': 'all_values'}] + all_teams,
                         value='all_values'
                     ), 
                 ]
@@ -63,14 +63,14 @@ def team_selector(df):
         }
     )
 
-def year_selector(df):
+def year_selector(conn):
+    all_years = [{'label': year, 'value': year} for year in pd.read_sql('select distinct year from player_profiles_by_year order by year desc', conn).year]
     return dbc.Card(
         [
             dbc.CardBody(
                 dcc.Dropdown(
                     id='crossfilter-year',
-                    options=[{'label': 'All Years', 'value': 'all_values'}] +
-                            [{'label': year, 'value': year} for year in df['date'].unique()],
+                    options=[{'label': 'All Years', 'value': 'all_values'}] + all_years,
                     value='all_values'
                 ),
             )
@@ -82,7 +82,7 @@ def year_selector(df):
         }
     )
 
-def create_filter_callbacks(dash_app, player_images, team_images, df):
+def create_filter_callbacks(dash_app, player_images, team_images, conn):
     @dash_app.callback(
         Output('player-img-container', 'children'),
         Input('crossfilter-player', 'value')
@@ -112,13 +112,23 @@ def create_filter_callbacks(dash_app, player_images, team_images, df):
         Input('crossfilter-year', 'value')
     )
     def update_player_options(selected_team, selected_year):
-        dff = df.copy()
+        sql_query = f"""
+            select distinct player
+            from player_profiles_by_team_and_year
+            where
+                1 = 1
+                {'and team = (?)' if selected_team != 'all_values' else ''}
+                {'and year = (?)' if selected_year != 'all_values' else ''}
+            order by player
+        """
+        params = []
         if selected_team != 'all_values':
-            dff = dff[dff['team'] == selected_team]
+            params = params + [selected_team]
         if selected_year != 'all_values':
-            dff = dff[dff['date'].str[:4] == selected_year]
-        players = [{'label': 'All Players', 'value': 'all_values'}] + \
-                [{'label': player, 'value': player} for player in dff['player'].unique()]
+            params = params + [selected_year]
+
+        all_players = [{'label': player, 'value': player} for player in pd.read_sql(sql_query, conn, params=params).player]
+        players = [{'label': 'All Players', 'value': 'all_values'}] + all_players
         return players
 
     @dash_app.callback(
@@ -127,13 +137,24 @@ def create_filter_callbacks(dash_app, player_images, team_images, df):
         Input('crossfilter-year', 'value')
     )
     def update_team_options(selected_player, selected_year):
-        dff = df.copy()
+        sql_query = f"""
+            select distinct team
+            from player_profiles_by_team_and_year
+            where
+                1 = 1
+                {'and player = (?)' if selected_player != 'all_values' else ''}
+                {'and year = (?)' if selected_year != 'all_values' else ''}
+            order by team
+        """
+        params = []
+
         if selected_player != 'all_values':
-            dff = dff[dff['player'] == selected_player]
+            params = params + [selected_player]
         if selected_year != 'all_values':
-            dff = dff[dff['date'].str[:4] == selected_year]
-        teams = [{'label': 'All Teams', 'value': 'all_values'}] + \
-                [{'label': team, 'value': team} for team in dff['team'].unique()]
+            params = params + [selected_year]
+        
+        all_teams = [{'label': team, 'value': team} for team in pd.read_sql(sql_query, conn, params=params).team]
+        teams = [{'label': 'All Teams', 'value': 'all_values'}] + all_teams
         return teams
 
     @dash_app.callback(
@@ -142,13 +163,24 @@ def create_filter_callbacks(dash_app, player_images, team_images, df):
         Input('crossfilter-team', 'value')
     )
     def update_year_options(selected_player, selected_team):
-        dff = df.copy()
+        sql_query = f"""
+            select distinct year
+            from player_profiles_by_team_and_year
+            where
+                1 = 1
+                {'and player = (?)' if selected_player != 'all_values' else ''}
+                {'and team = (?)' if selected_team != 'all_values' else ''}
+            order by year desc
+        """
+        params = []
+
         if selected_player != 'all_values':
-            dff = dff[dff['player'] == selected_player]
+            params = params + [selected_player]
         if selected_team != 'all_values':
-            dff = dff[dff['team'] == selected_team]
-        years = [{'label': 'All Years', 'value': 'all_values'}] + \
-                [{'label': year, 'value': year} for year in dff['date'].str[:4].unique()]
+            params = params + [selected_team]
+
+        all_years = [{'label': year, 'value': year} for year in pd.read_sql(sql_query, conn, params=params).year]
+        years = [{'label': 'All Years', 'value': 'all_values'}] + all_years
         return years
 
 # Profile stats and clustering
@@ -246,7 +278,7 @@ def create_slider_callbacks(dash_app, conn):
             player_profile = pd.read_sql('select * from player_profiles_by_year where player = (?) and year = (?)', 
                                          conn, params=(selected_player, selected_year,))
         else:
-            player_profile = pd.read_sql('select * from player_profiles_by_year where player = (?) and team = (?) and year = (?)', 
+            player_profile = pd.read_sql('select * from player_profiles_by_team_and_year where player = (?) and team = (?) and year = (?)', 
                                          conn, params=(selected_player, selected_team, selected_year,))
             
         avg_dist = min(player_profile.avg_distance.item(), 21)

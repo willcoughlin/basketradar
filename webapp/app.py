@@ -35,11 +35,11 @@ profile_content = dbc.Container(
     [
         dbc.Row(
             [
-                dbc.Col(profile.player_selector(df), md=2),
+                dbc.Col(profile.player_selector(conn), md=2),
                 dbc.Col(
                     [
-                        dbc.Row([dbc.Col(profile.team_selector(df), md=12)]),
-                        dbc.Row([dbc.Col(profile.year_selector(df), md=12)])
+                        dbc.Row([dbc.Col(profile.team_selector(conn), md=12)]),
+                        dbc.Row([dbc.Col(profile.year_selector(conn), md=12)])
                     ],
                     md=2
                 ),
@@ -121,7 +121,7 @@ dash_app.layout = html.Div(
 )
 
 plots.create_plot_callbacks(dash_app, df)
-profile.create_filter_callbacks(dash_app, player_images, team_images, df)
+profile.create_filter_callbacks(dash_app, player_images, team_images, conn)
 profile.create_slider_callbacks(dash_app, conn)
 
 if __name__ == '__main__':
