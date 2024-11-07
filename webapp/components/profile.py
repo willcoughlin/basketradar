@@ -1,6 +1,7 @@
-from dash import html, dcc, Output, Input
+from dash import html, dcc, Output, Input, ctx
 import dash_bootstrap_components as dbc
 import pandas as pd
+import urllib.parse
 
 # Basic filters
 
@@ -182,6 +183,40 @@ def create_filter_callbacks(dash_app, player_images, team_images, conn):
         years = [{'label': 'All Years', 'value': 'all_values'}] + all_years
         return years
 
+    @dash_app.callback(
+        [
+            Output('crossfilter-player', 'value'),
+            Output('crossfilter-team', 'value'),
+            Output('crossfilter-year', 'value'),
+            Output('url', 'href')
+        ],
+        [
+            Input('crossfilter-player', 'value'),
+            Input('crossfilter-team', 'value'),
+            Input('crossfilter-year', 'value'),
+            Input('url', 'search')
+        ],
+        prevent_initial_call=True
+    )
+    def update_selections_from_url(selected_player, selected_team, selected_year, query_str):
+        trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+        if trigger_id == 'url':
+            args = urllib.parse.parse_qs(query_str[1:])
+            return (
+                args.get('player', ['all_values'])[0],
+                args.get('team', ['all_values'])[0],
+                args.get('year', ['all_values'])[0],
+                f'/{query_str}'
+            )
+        
+        new_args = {}
+        if selected_player != 'all_values': new_args['player'] = selected_player
+        if selected_team != 'all_values': new_args['team'] = selected_team
+        if selected_year != 'all_values': new_args['year'] = selected_year
+        new_query_str = f'/?{urllib.parse.urlencode(new_args)}'
+
+        return selected_player, selected_team, selected_year, new_query_str
+
 # Profile sliders
  
 def stat_slider(val, min, max, marks, label, id):
@@ -319,7 +354,16 @@ def create_similarity_list_callbacks(dash_app, similarity_calculators):
         if selected_team == 'all_values' and selected_year and selected_year == 'all_values':
             player_similarities = get_player_similarities(similarity_attributes)
             top = player_similarities[selected_player].sort_values(ascending=True)[1:6]
-            return [html.Li([result]) for result in top.index]
+            return [html.Li(
+                        dbc.Button(
+                            result, 
+                            color='link', 
+                            n_clicks=0,
+                            id=f'similar-player-btn-{i}',
+                            href=f'/?{urllib.parse.urlencode({"player": result})}'
+                        )
+                    ) 
+                    for i, result in enumerate(top.index)]
         
         # Grouped by player and team
         elif selected_team != 'all_values' and selected_year == 'all_values':
@@ -331,7 +375,16 @@ def create_similarity_list_callbacks(dash_app, similarity_calculators):
                 similar = similar[similar.index.get_level_values('team') == selected_team]
             
             top = similar.sort_values(ascending=True)[1:6]
-            return [html.Li(f'{player} ({team})') for player, team in top.index]
+            return [html.Li(
+                        dbc.Button(
+                            f'{player} ({team})', 
+                            color='link', 
+                            n_clicks=0, 
+                            id=f'similar-player_btn-{i}',
+                            href=f'/?{urllib.parse.urlencode({"player": player, "team": team})}'
+                        )
+                    ) 
+                    for i, (player, team) in enumerate(top.index)]
         
         # Grouped by player and year
         elif selected_team == 'all_values' and selected_year != 'all_values':
@@ -343,7 +396,16 @@ def create_similarity_list_callbacks(dash_app, similarity_calculators):
                 similar = similar[similar.index.get_level_values('year') == selected_year]
             
             top = similar.sort_values(ascending=True)[1:6]
-            return [html.Li(f'{player} ({year})') for player, year in top.index]
+            return [html.Li(
+                        dbc.Button(
+                            f'{player} ({year})', 
+                            color='link', 
+                            n_clicks=0,
+                            id=f'similar-player_btn-{i}',
+                            href=f'/?{urllib.parse.urlencode({"player": player, "year": year})}'
+                        )
+                    ) 
+                    for i, (player, year) in enumerate(top.index)]
         
         # Grouped by player, team, and year
         else:
@@ -359,7 +421,16 @@ def create_similarity_list_callbacks(dash_app, similarity_calculators):
                 similar = similar[similar.index.get_level_values('year') == selected_year]
 
             top = similar.sort_values(ascending=True)[1:6]
-            return [html.Li(f'{player} ({team} {year})') for player, team, year in top.index]
+            return [html.Li(
+                        dbc.Button(
+                            f'{player} ({team} {year})', 
+                            color='link', 
+                            n_clicks=0,
+                            id='similar-player_btn-{i}',
+                            href=f'/?{urllib.parse.urlencode({"player": player, "team": team, "year": year})}'
+                        )
+                    ) 
+                    for i, (player, team, year) in enumerate(top.index)]
 
 def create_similarity_calc_funcs(cache, conn):
     from sklearn.preprocessing import StandardScaler

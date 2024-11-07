@@ -1,4 +1,4 @@
-from dash import Dash, html
+from dash import Dash, html, dcc
 import dash_bootstrap_components as dbc
 import pandas as pd
 import components.plots as plots
@@ -37,6 +37,7 @@ profile_content = dbc.Container(
     [
         dbc.Row(
             [
+                dcc.Location(id='url', refresh=False),
                 dbc.Col(profile.player_selector(conn), md=2),
                 dbc.Col(
                     [
