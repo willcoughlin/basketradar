@@ -321,9 +321,10 @@ def create_similarity_list_callbacks(dash_app, similarity_calculators):
             Input('crossfilter-year', 'value'),
             Input('crossfilter-player', 'value'),
             Input('crossfilter-team', 'value'),
+            # Input('similarity-filters', 'value'),
         ]
     )
-    def update_similarity_filters(selected_year, selected_player, selected_team):
+    def update_similarity_filters(selected_year, selected_player, selected_team):#, cur_filter_vals):
         options = []
         if selected_player == 'all_values': 
             return [], [], 'd-none', 'd-none'
@@ -341,7 +342,7 @@ def create_similarity_list_callbacks(dash_app, similarity_calculators):
         Input('crossfilter-player', 'value'),
         Input('crossfilter-team', 'value'),
         Input('similarity-attributes', 'value'),
-        Input('similarity-filters', 'value'),
+        Input('similarity-filters', 'value')
     )
     def update_similarity_list(selected_year, selected_player, selected_team, similarity_attributes, filters):
         if selected_player == 'all_values': 
@@ -456,7 +457,7 @@ def create_similarity_calc_funcs(cache, conn):
     def similarities_by_player_year(features):
         player_profiles_by_year = pd.read_sql('select * from player_profiles_by_year', conn)
         X_player_year_scaled = StandardScaler().fit_transform(player_profiles_by_year[features])
-        idx = pd.MultiIndex.from_frame(player_profiles_by_year[['player', 'team']])
+        idx = pd.MultiIndex.from_frame(player_profiles_by_year[['player', 'year']])
         similarities_player_year = pd.DataFrame(euclidean_distances(X_player_year_scaled), columns=idx, index=idx)
         return similarities_player_year
     
