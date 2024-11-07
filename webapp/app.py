@@ -7,9 +7,15 @@ from components.page import navbar
 import sqlite3
 import os
 import requests
+from flask_caching import Cache
 
 dash_app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP, './assets/custom.css'],  suppress_callback_exceptions=True)
 app = dash_app.server
+
+cache = Cache(app, config={
+    'CACHE_TYPE': 'SimpleCache',
+    'CACHE_DEFAULT_TIMEOUT': 3600
+})
 
 player_images = pd.read_csv('https://basketradarstorage.blob.core.windows.net/cleandata/player_images.csv')
 team_images = pd.read_csv('https://basketradarstorage.blob.core.windows.net/cleandata/team_images.csv')
@@ -27,7 +33,6 @@ if not os.path.exists(sqlite_file_path):
     print('Database downloaded.')
 
 conn = sqlite3.connect(sqlite_file_path, check_same_thread=False)
-
 profile_content = dbc.Container(
     [
         dbc.Row(
@@ -49,20 +54,27 @@ profile_content = dbc.Container(
                     ],
                     md=3,
                     id='profile-slider-col',
-                    className='hidden'
+                    className='d-none'
                 ),
-                dbc.Col(html.H4('Select a player to view profile'), md=3, id='profile-slider-placeholder-col',
-                        style={'display': 'flex', 'align-items': 'center', 'justify-content': 'center'}),
+                dbc.Col(html.H5('Select a player to view profile'), md=3, id='profile-slider-placeholder-col', className='text-muted',
+                        style={'display': 'flex', 'align-items': 'center', 'justify-content': 'left'}),
                 dbc.Col(
                     [
-                        dbc.Row([dbc.Col(html.H5('Similar Players'), md=12)]),
-                        dbc.Row([dbc.Col(profile.similarity_filters())])
+                        dbc.Row([dbc.Col(html.H5('Similarity Explorer'), md=12)]),
+                        dbc.Row(
+                            [
+                                dbc.Col(profile.similarity_filters(), md=4),
+                                dbc.Col([
+                                    html.H6('Most Similar:'),
+                                    profile.similarity_list()
+                                ], md=8)
+                            ]
+                        )
                     ],
-                    md=2,
+                    md=4,
                     id='similarity-filter-col',
                     className='d-none'
                 ),
-                dbc.Col([], md=3, id='similarity-graph-col', className='d-none')
             ],
             style={'height': '300px '}
         ),
@@ -120,6 +132,9 @@ dash_app.layout = html.Div(
 plots.create_plot_callbacks(dash_app, conn)
 profile.create_filter_callbacks(dash_app, player_images, team_images, conn)
 profile.create_slider_callbacks(dash_app, conn)
+
+similarity_calculators = profile.create_similarity_calc_funcs(cache, conn)
+profile.create_similarity_list_callbacks(dash_app, similarity_calculators)
 
 if __name__ == '__main__':
     dash_app.run(debug=True)
