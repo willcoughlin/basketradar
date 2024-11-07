@@ -321,10 +321,12 @@ def create_similarity_list_callbacks(dash_app, similarity_calculators):
             Input('crossfilter-year', 'value'),
             Input('crossfilter-player', 'value'),
             Input('crossfilter-team', 'value'),
-            # Input('similarity-filters', 'value'),
+            Input('similarity-filters', 'value'),
         ]
     )
-    def update_similarity_filters(selected_year, selected_player, selected_team):#, cur_filter_vals):
+    def update_similarity_filters(selected_year, selected_player, selected_team, cur_filter_vals):
+        trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+        
         options = []
         if selected_player == 'all_values': 
             return [], [], 'd-none', 'd-none'
@@ -334,7 +336,9 @@ def create_similarity_list_callbacks(dash_app, similarity_calculators):
         if selected_year != 'all_values':
             options += [{'label': 'Same Year', 'value': 'same-year'}]
 
-        return options, [], '', 'd-none' if len(options) == 0 else ''
+        filter_vals = cur_filter_vals or []
+
+        return options, [v for v in filter_vals if v in [d['value'] for d in options]], '', 'd-none' if len(options) == 0 else ''
 
     @dash_app.callback(
         Output('similarity-list-results', 'children'),
