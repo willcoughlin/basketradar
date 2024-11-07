@@ -1,0 +1,20 @@
+.statSlider .rc-slider {
+    background-color: unset;
+}
+.statSlider .rc-slider-rail {
+    background-color: #0d6efd;
+}
+.statSlider .rc-slider-dot {
+    background-color: #0d6efd;
+    border: none;
+}
+.statSlider .rc-slider-handle, 
+.statSlider .rc-slider-dot,
+.statSlider .rc-slider-mark-text {
+    cursor: unset !important;
+}
+
+#player-img-container img {
+    display: flex;
+    align-items: center;
+}

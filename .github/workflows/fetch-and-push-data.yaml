@@ -45,16 +45,20 @@ jobs:
 
       - name: Get and clean shot data
         run: python load_and_clean_data.py
-
+    
       - name: Get image data
         run: |
             python get_player_images.py
             python get_team_images.py
 
+      - name: Aggregate player profiles
+        run: python create_player_profiles.py
+
       - name: Delete raw data 
         run: rm -r data/nba
 
-      - uses: bacongobbler/azure-blob-storage-upload@main
+      - name: Upload CSVs
+        uses: bacongobbler/azure-blob-storage-upload@main
         with:
           source_dir: 'data_processing/data'
           extra_args: '--pattern *.csv'
@@ -62,7 +66,8 @@ jobs:
           overwrite: 'true'
           connection_string: ${{ secrets.CONNECTION_STRING }}
 
-      - uses: bacongobbler/azure-blob-storage-upload@main
+      - name: Upload SQLite
+        uses: bacongobbler/azure-blob-storage-upload@main
         with:
           source_dir: 'data_processing/data'
           extra_args: '--pattern *.db'
