@@ -32,6 +32,11 @@ def create_player_profile_tables(cursor):
                 avg_distance REAL,
                 avg_shotX REAL,
                 accuracy_REAL,
+                total_makes INTEGER,
+                q1_makes INTEGER,
+                q2_makes INTEGER,
+                q3_makes INTEGER,
+                q4_makes INTEGER,
                 top_quarter INTEGER
             );
             CREATE TABLE IF NOT EXISTS player_profiles_by_team (
@@ -40,6 +45,11 @@ def create_player_profile_tables(cursor):
                 avg_distance REAL,
                 avg_shotX REAL,
                 accuracy_REAL,
+                total_makes INTEGER,
+                q1_makes INTEGER,
+                q2_makes INTEGER,
+                q3_makes INTEGER,
+                q4_makes INTEGER,
                 top_quarter INTEGER
             );
             CREATE TABLE IF NOT EXISTS player_profiles_by_year (
@@ -48,6 +58,11 @@ def create_player_profile_tables(cursor):
                 avg_distance REAL,
                 avg_shotX REAL,
                 accuracy_REAL,
+                total_makes INTEGER,
+                q1_makes INTEGER,
+                q2_makes INTEGER,
+                q3_makes INTEGER,
+                q4_makes INTEGER,
                 top_quarter INTEGER
             );
             CREATE TABLE IF NOT EXISTS player_profiles_by_team_and_year (
@@ -57,6 +72,11 @@ def create_player_profile_tables(cursor):
                 avg_distance REAL,
                 avg_shotX REAL,
                 accuracy_REAL,
+                total_makes INTEGER,
+                q1_makes INTEGER,
+                q2_makes INTEGER,
+                q3_makes INTEGER,
+                q4_makes INTEGER,
                 top_quarter INTEGER
             );
         """
