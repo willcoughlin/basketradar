@@ -7,11 +7,11 @@ from utils import draw_plotly_court
 import pandas as pd
 import time
 
-distance_scatter = dcc.Graph(id='distance-scatter')
-moving_average_2pt = dcc.Graph(id='moving-average-2pt')
-moving_average_3pt = dcc.Graph(id='moving-average-3pt')
+distance_scatter = dcc.Loading(dcc.Graph(id='distance-scatter'))
+moving_average_2pt = dcc.Loading(dcc.Graph(id='moving-average-2pt'))
+moving_average_3pt = dcc.Loading(dcc.Graph(id='moving-average-3pt'))
 
-shot_map = dcc.Graph(id='shot-map')
+shot_map = dcc.Loading(dcc.Graph(id='shot-map'))
 controls_metric = dbc.Card(
     [
         html.Div(
@@ -161,8 +161,8 @@ def create_plot_callbacks(dash_app, conn):
             return shotmap_fig
         
         def update_trend_charts(dff, point_value):
-            point_value_str = f'{point_value}-pointer'
-            dfff=dff[dff['shot_type']==point_value]
+            # point_value_str = f'{point_value}-pointer'
+            # dfff=dff[dff['shot_type']==point_value]
 
             # avg_df = dfff[['date', 'made']].groupby('date').mean()
             # moving_avg_df = avg_df.rolling(window=3).mean().reset_index()
