@@ -106,6 +106,15 @@ def retrieve_and_clean_data():
         # Insert data into the database
         df.to_sql('shots', conn, if_exists='replace', index=False)
 
+        # Create indexes for UI filtering
+        cursor.executescript('''
+            CREATE INDEX idx_shots_team ON shots(team);
+            CREATE INDEX idx_shots_year ON shots(year);
+            CREATE INDEX idx_shots_player_year ON shots(player, year);
+            CREATE INDEX idx_shots_team_year ON shots(team, year);
+            CREATE INDEX idx_shots_player_team_year ON shots(player, team, year);
+        ''')
+
         # Commit changes and close connection
         conn.commit()
         conn.close()
