@@ -43,41 +43,45 @@ def create_plot_callbacks(dash_app, conn):
         Input('shotmap-metric', 'value')
     )
     def update_graphs(player_name, team, year, metric):
-        sql_query = f"""
-            select * 
-            from shots
-            where
-                1 = 1
-                and substr(date, 0, 3) = '11'
-	            and substr(date, 7, 4) = '2000'
-                {'and player = (?)' if player_name != 'all_values' else ''}
-                {'and team = (?)' if team != 'all_values' else ''}
-                {'and substr(date, 7, 4) = (?)' if year != 'all_values' else ''}
+        ## dff query with transformations directly in SQL
+        sql_query_dff = """
+        SELECT shot_type, 
+            distance, 
+            made, 
+            shotX, 
+            shotY,
+            -- Coordinate transformations directly in SQL
+            ((shotX - 0) / (50 - 0)) * (250 - (-250)) + (-250) AS shotX_,
+            ((shotY - 0) / (47 - 0)) * (417.5 - (-52.5)) + (-52.5) AS shotY_
+        FROM shots
+        WHERE
+            (? = 'all_values' OR player = ?)
+            AND (? = 'all_values' OR team = ?)
+            AND (? = 'all_values' OR substr(date, 7, 4) = ?)
         """
+        
+        sql_query_agg_df = """
+        SELECT 
+            shot_type, 
+            distance, 
+            AVG(made) AS average_made,  -- Average of 'made'
+            COUNT(*) AS count_shots  
+        FROM 
+            shots
+        WHERE
+            (? = 'all_values' OR player = ?)
+            AND (? = 'all_values' OR team = ?)
+            AND (? = 'all_values' OR substr(date, 7, 4) = ?)
+        GROUP BY 
+            shot_type, distance
+        """
+        ### params list
+        params = [player_name, player_name, team, team, year, year]
 
-        params = []
-        if player_name and player_name != 'all_values':
-            params = params + [player_name]
-        if team and team != 'all_values':
-            params = params + [team]
-        if year and year != 'all_values':
-            params = params + [year]
-
-        dff = pd.read_sql(sql_query, conn, params=params) if len(params) > 0 else pd.read_sql(sql_query, conn)
-
-        # Define the old and new x- and y-ranges & transform coords
-        old_x_range = (0, 50)
-        new_x_range = (-250, 250)
-        old_y_range = (0, 47)
-        new_y_range = (-52.5, 417.5)
-        dff['shotX_'] = ((dff['shotX'] - old_x_range[0]) / (old_x_range[1] - old_x_range[0])) * (new_x_range[1] - new_x_range[0]) + new_x_range[0]
-        dff['shotY_'] = ((dff['shotY'] - old_y_range[0]) / (old_y_range[1] - old_y_range[0])) * (new_y_range[1] - new_y_range[0]) + new_y_range[0]
-
-        agg_df = dff.groupby(['distance', 'shot_type']).agg(
-            average_made=('made', 'mean'),
-            count_shots=('made', 'count')
-        ).reset_index()
-        agg_df['shot_type_label'] = agg_df.shot_type.apply(lambda st: f'{st}-pointer')
+        ### store in pandas df
+        dff = pd.read_sql(sql_query_dff, conn, params=params)
+        agg_df = pd.read_sql(sql_query_agg_df,conn,params=params)
+        print(agg_df.head(2))
 
         def update_scatter(dff, agg_df):
             if dff.empty:
@@ -113,7 +117,7 @@ def create_plot_callbacks(dash_app, conn):
             )
             return fig
 
-        def update_shot_map(dff, metric):
+        def update_shot_map(dff=dff, metric=metric):
             # colorblind-safe colorscale from https://colorbrewer2.org/#type=sequential&scheme=OrRd&n=9
             custom_colorscale = [
                 [0.0, '#fff7ec'],
@@ -158,51 +162,119 @@ def create_plot_callbacks(dash_app, conn):
             return shotmap_fig
         
         def update_trend_charts(dff, point_value):
-            point_value_str = f'{point_value}-pointer'
-            dfff=dff[dff['shot_type']==point_value]
-
-            avg_df = dfff[['date', 'made']].groupby('date').mean()
-            moving_avg_df = avg_df.rolling(window=3).mean().reset_index()
-            average_rate = dfff['made'].mean()
-            moving_avg_df['marker_color'] = np.where(
-                moving_avg_df['made'] < average_rate, 'lightcoral',
-                np.where(moving_avg_df['made'] > average_rate, 'palegreen', 'lightgray')
+            # point_value_str = f'{point_value}-pointer'
+            query = """
+            WITH DailyAverages AS (
+                SELECT 
+                    date,
+                    player,
+                    team,
+                    shot_type,
+                    COUNT(*) AS total_shots,  -- Total number of shots made for the day
+                    SUM(made) AS shots_made,  -- Total shots made for the day
+                    -- Calculate the shooting average (made / total shots) for the day
+                    CAST(SUM(made) AS FLOAT) / COUNT(*) AS daily_shooting_avg
+                FROM shots
+                WHERE 
+                    shot_type = ?  -- Filter by shot type
+                    AND (? = 'all_values' OR player = ?)  -- Filter by player
+                    AND (? = 'all_values' OR team = ?)  -- Filter by team
+                    AND (? = 'all_values' OR SUBSTR(date, 7, 4) = ?)  -- Filter by year (extracted from date)
+                GROUP BY date, player, team, shot_type  -- Group by day, player, team, and shot type
+            ),
+            MovingAverage AS (
+                SELECT 
+                    date,
+                    player,
+                    team,
+                    shot_type,
+                    daily_shooting_avg,  -- Daily shooting average
+                    AVG(daily_shooting_avg) OVER (PARTITION BY player ORDER BY date ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) AS moving_avg,  -- 3-day moving average for shooting average
+                    AVG(daily_shooting_avg) OVER () AS overall_avg,  -- Overall average of shooting percentage
+                    ROW_NUMBER() OVER (PARTITION BY player ORDER BY date) AS row_num  -- Ensure correct ordering for moving average
+                FROM DailyAverages
             )
+            SELECT 
+                date, 
+                player,
+                team,
+                shot_type,
+                daily_shooting_avg,  -- Shooting average for the day
+                moving_avg,  -- 3-day moving average for shooting average
+                overall_avg,
+                -- Apply color coding based on moving_avg vs overall_avg
+                CASE
+                    WHEN moving_avg < overall_avg THEN 'lightcoral'
+                    ELSE 'palegreen'
+                END AS marker_color
+            FROM MovingAverage
+            WHERE row_num >= 3  -- Only include rows where there are at least 3 shots for moving average calculation
+            """
 
+            ### query params
+            params = [point_value, player_name, player_name, team, team, year, year]
+
+            ## store results in a dataframe
+            agg_df_filtered = pd.read_sql(query, conn, params)
+
+            # # Filter the aggregated data for the given shot type
+            # agg_df_filtered = agg_df[agg_df['shot_type'] == point_value_str]
+            # # Calculate the overall average for the shot type
+            # average_rate = agg_df_filtered['average_made'].mean()
+
+            # # Determine marker color based on moving average vs average rate
+            # agg_df_filtered['marker_color'] = np.where(
+            #     agg_df_filtered['moving_avg'] < average_rate, 'lightcoral',
+            #     np.where(agg_df_filtered['moving_avg'] > average_rate, 'palegreen', 'lightgray')
+            # )
+
+            # Plotting the moving average trend
             fig_moving_avg = go.Figure()
+
+            # Add moving average trace
             fig_moving_avg.add_trace(go.Scatter(
-                x=moving_avg_df['date'],
-                y=moving_avg_df['made'],
+                x=agg_df_filtered['date'],
+                y=agg_df_filtered['moving_avg'],
                 mode='lines+markers',
-                marker=dict(size=10, color=moving_avg_df['marker_color']),
+                marker=dict(size=10, color=agg_df_filtered['marker_color']),
                 line=dict(color='black'),
                 name=f'3-day moving average of {point_value_str} %',
                 hovertemplate="3-day moving average: %{y:.2%}"
-                                "<extra></extra>"
+                            "<extra></extra>"
             ))
+
+            # Add the overall average line
             fig_moving_avg.add_trace(go.Scatter(
-                x=[moving_avg_df['date'].min(),moving_avg_df['date'].max()],
+                x=[agg_df_filtered['date'].min(), agg_df_filtered['date'].max()],
                 y=[average_rate, average_rate],
                 mode='lines',
                 line=dict(color='LightGray', dash='dash'),
                 name=f'average {point_value_str} %',
             ))
+
+            # Update y-axis properties
             fig_moving_avg.update_yaxes(
-                        title='Accuracy',
-                        tickformat='2%',
-                        showgrid=True, 
-                        gridcolor='LightGray',
-                        dtick=0.2
-                    )
+                title='Accuracy',
+                tickformat='2%',
+                showgrid=True, 
+                gridcolor='LightGray',
+                dtick=0.2
+            )
+
+            # Update x-axis properties
             fig_moving_avg.update_xaxes(
                 tickformat="%m/%d/%Y", 
             )
-            fig_moving_avg.update_layout(title=f'Moving Average {point_value}-Point Percentage',
-                                        xaxis_title='Date', 
-                                        yaxis_title='Percentage', 
-                                        yaxis=dict(range=[0, 1], autorange=False),
-                                        plot_bgcolor='white',
-                                        hovermode='x unified')
+
+            # Layout settings
+            fig_moving_avg.update_layout(
+                title=f'Moving Average {point_value}-Point Percentage',
+                xaxis_title='Date', 
+                yaxis_title='Percentage', 
+                yaxis=dict(range=[0, 1], autorange=False),
+                plot_bgcolor='white',
+                hovermode='x unified'
+            )
 
             return fig_moving_avg
 
