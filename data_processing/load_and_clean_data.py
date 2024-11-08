@@ -73,6 +73,11 @@ def retrieve_and_clean_data():
     if not os.path.isfile(cleaned_dataset_path):
         data_cleaning(final_dataset_path).to_csv('data/cleaned_final_dataset.csv')
 
+    # Load and round data for insertion
+    df = pd.read_csv(cleaned_dataset_path)  
+    df['shotX'] = df['shotX'].round(1)
+    df['shotY'] = df['shotY'].round(1)
+
     # Check if SQLite database file exists
     db_path = os.path.join(os.getcwd(), 'data/nba_shots.db')
     if not os.path.isfile(db_path):
@@ -84,6 +89,7 @@ def retrieve_and_clean_data():
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS shots (
                 date TEXT,
+                year INTEGER,
                 game_location TEXT,
                 shotX REAL,
                 shotY REAL,
@@ -96,11 +102,6 @@ def retrieve_and_clean_data():
                 zone INTEGER
             )
         ''')
-
-        # Load and round data for insertion
-        df = pd.read_csv(cleaned_dataset_path)  
-        df['shotX'] = df['shotX'].round(1)
-        df['shotY'] = df['shotY'].round(1)
 
         # Insert data into the database
         df.to_sql('shots', conn, if_exists='replace', index=False)

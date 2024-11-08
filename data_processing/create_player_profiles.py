@@ -6,7 +6,7 @@ def create_player_profiles(conn, by_team=False, by_year=False):
         select 
             player,
             {'team,' if by_team else ''}
-            {'substr(date,7,4) as year,' if by_year else ''}
+            {'year,' if by_year else ''}
             avg(distance) as avg_distance,
             avg(shotX) as avg_shotX,
             avg(made) as accuracy,
@@ -19,7 +19,7 @@ def create_player_profiles(conn, by_team=False, by_year=False):
         where trim(player) <> 'made' and trim(player) <> 'missed'
         group by
             {'team,' if by_team else ''}
-            {'substr(date,7,4),' if by_year else ''}
+            {'year,' if by_year else ''}
             player
     """
     return pd.read_sql(sql_query, conn)
@@ -54,7 +54,7 @@ def create_player_profile_tables(cursor):
             );
             CREATE TABLE IF NOT EXISTS player_profiles_by_year (
                 player TEXT,
-                year TEXT,
+                year INTEGER,
                 avg_distance REAL,
                 avg_shotX REAL,
                 accuracy_REAL,
@@ -68,7 +68,7 @@ def create_player_profile_tables(cursor):
             CREATE TABLE IF NOT EXISTS player_profiles_by_team_and_year (
                 player TEXT,
                 team TEXT,
-                year TEXT,
+                year INTEGER,
                 avg_distance REAL,
                 avg_shotX REAL,
                 accuracy_REAL,
