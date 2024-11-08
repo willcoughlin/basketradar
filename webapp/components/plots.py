@@ -5,6 +5,7 @@ import dash_bootstrap_components as dbc
 from dash import Output, Input, dcc, html
 from utils import draw_plotly_court
 import pandas as pd
+import time
 
 distance_scatter = dcc.Graph(id='distance-scatter')
 moving_average_2pt = dcc.Graph(id='moving-average-2pt')
@@ -31,7 +32,7 @@ controls_metric = dbc.Card(
 )
 
 def create_plot_callbacks(dash_app, conn):
-    # create & update plots
+    #create & update plots
     @dash_app.callback(
         Output('distance-scatter', 'figure'),
         Output('shot-map', 'figure'),
@@ -44,15 +45,19 @@ def create_plot_callbacks(dash_app, conn):
     )
     def update_graphs(player_name, team, year, metric):
         sql_query = f"""
-            select * 
+            select
+                shot_type, 
+                distance, 
+                made, 
+                shotX, 
+                shotY,
+                date
             from shots
             where
                 1 = 1
-                and substr(date, 0, 3) = '11'
-	            and substr(date, 7, 4) = '2000'
                 {'and player = (?)' if player_name != 'all_values' else ''}
                 {'and team = (?)' if team != 'all_values' else ''}
-                {'and substr(date, 7, 4) = (?)' if year != 'all_values' else ''}
+                {'and year = (?)' if year != 'all_values' else ''}
         """
 
         params = []
@@ -61,23 +66,21 @@ def create_plot_callbacks(dash_app, conn):
         if team and team != 'all_values':
             params = params + [team]
         if year and year != 'all_values':
-            params = params + [year]
+            params = params + [int(year)]
 
+        start_time = time.time()
         dff = pd.read_sql(sql_query, conn, params=params) if len(params) > 0 else pd.read_sql(sql_query, conn)
+        dff['shotX_'] = dff['shotX'] / 50 * 500 - 250
+        dff['shotY_'] = dff['shotY'] / 47 * 470 - 52.5
+        print(f'DF loaded in {time.time() - start_time} sec')
 
-        # Define the old and new x- and y-ranges & transform coords
-        old_x_range = (0, 50)
-        new_x_range = (-250, 250)
-        old_y_range = (0, 47)
-        new_y_range = (-52.5, 417.5)
-        dff['shotX_'] = ((dff['shotX'] - old_x_range[0]) / (old_x_range[1] - old_x_range[0])) * (new_x_range[1] - new_x_range[0]) + new_x_range[0]
-        dff['shotY_'] = ((dff['shotY'] - old_y_range[0]) / (old_y_range[1] - old_y_range[0])) * (new_y_range[1] - new_y_range[0]) + new_y_range[0]
-
+        start_time = time.time()
         agg_df = dff.groupby(['distance', 'shot_type']).agg(
             average_made=('made', 'mean'),
             count_shots=('made', 'count')
         ).reset_index()
-        agg_df['shot_type_label'] = agg_df.shot_type.apply(lambda st: f'{st}-pointer')
+        agg_df['shot_type_label'] = agg_df.shot_type.astype(str) + '-pointer'
+        print(f'DF aggregated in {time.time() - start_time} sec')
 
         def update_scatter(dff, agg_df):
             if dff.empty:
@@ -161,53 +164,57 @@ def create_plot_callbacks(dash_app, conn):
             point_value_str = f'{point_value}-pointer'
             dfff=dff[dff['shot_type']==point_value]
 
-            avg_df = dfff[['date', 'made']].groupby('date').mean()
-            moving_avg_df = avg_df.rolling(window=3).mean().reset_index()
-            average_rate = dfff['made'].mean()
-            moving_avg_df['marker_color'] = np.where(
-                moving_avg_df['made'] < average_rate, 'lightcoral',
-                np.where(moving_avg_df['made'] > average_rate, 'palegreen', 'lightgray')
-            )
+            # avg_df = dfff[['date', 'made']].groupby('date').mean()
+            # moving_avg_df = avg_df.rolling(window=3).mean().reset_index()
+            # average_rate = dfff['made'].mean()
+            # moving_avg_df['marker_color'] = np.where(
+                # moving_avg_df['made'] < average_rate, 'lightcoral',
+                # np.where(moving_avg_df['made'] > average_rate, 'palegreen', 'lightgray')
+            # )
 
             fig_moving_avg = go.Figure()
-            fig_moving_avg.add_trace(go.Scatter(
-                x=moving_avg_df['date'],
-                y=moving_avg_df['made'],
-                mode='lines+markers',
-                marker=dict(size=10, color=moving_avg_df['marker_color']),
-                line=dict(color='black'),
-                name=f'3-day moving average of {point_value_str} %',
-                hovertemplate="3-day moving average: %{y:.2%}"
-                                "<extra></extra>"
-            ))
-            fig_moving_avg.add_trace(go.Scatter(
-                x=[moving_avg_df['date'].min(),moving_avg_df['date'].max()],
-                y=[average_rate, average_rate],
-                mode='lines',
-                line=dict(color='LightGray', dash='dash'),
-                name=f'average {point_value_str} %',
-            ))
-            fig_moving_avg.update_yaxes(
-                        title='Accuracy',
-                        tickformat='2%',
-                        showgrid=True, 
-                        gridcolor='LightGray',
-                        dtick=0.2
-                    )
-            fig_moving_avg.update_xaxes(
-                tickformat="%m/%d/%Y", 
-            )
-            fig_moving_avg.update_layout(title=f'Moving Average {point_value}-Point Percentage',
-                                        xaxis_title='Date', 
-                                        yaxis_title='Percentage', 
-                                        yaxis=dict(range=[0, 1], autorange=False),
-                                        plot_bgcolor='white',
-                                        hovermode='x unified')
+            # fig_moving_avg.add_trace(go.Scatter(
+            #     x=moving_avg_df['date'],
+            #     y=moving_avg_df['made'],
+            #     mode='lines+markers',
+            #     marker=dict(size=10, color=moving_avg_df['marker_color']),
+            #     line=dict(color='black'),
+            #     name=f'3-day moving average of {point_value_str} %',
+            #     hovertemplate="3-day moving average: %{y:.2%}"
+            #                     "<extra></extra>"
+            # ))
+            # fig_moving_avg.add_trace(go.Scatter(
+            #     x=[moving_avg_df['date'].min(),moving_avg_df['date'].max()],
+            #     y=[average_rate, average_rate],
+            #     mode='lines',
+            #     line=dict(color='LightGray', dash='dash'),
+            #     name=f'average {point_value_str} %',
+            # ))
+            # fig_moving_avg.update_yaxes(
+            #             title='Accuracy',
+            #             tickformat='2%',
+            #             showgrid=True, 
+            #             gridcolor='LightGray',
+            #             dtick=0.2
+            #         )
+            # fig_moving_avg.update_xaxes(
+            #     tickformat="%m/%d/%Y", 
+            # )
+            # fig_moving_avg.update_layout(title=f'Moving Average {point_value}-Point Percentage',
+            #                             xaxis_title='Date', 
+            #                             yaxis_title='Percentage', 
+            #                             yaxis=dict(range=[0, 1], autorange=False),
+            #                             plot_bgcolor='white',
+            #                             hovermode='x unified')
 
             return fig_moving_avg
 
+        start_time = time.time()
         scatter_fig = update_scatter(dff, agg_df)
+        print(f'scatter loaded in {time.time() - start_time} sec')
+        start_time = time.time()
         shot_map_fig = update_shot_map(dff, metric)
+        print(f'shot map loaded in {time.time() - start_time} sec')
         fig_moving_avg_2pt = update_trend_charts(dff, 2)
         fig_moving_avg_3pt = update_trend_charts(dff, 3)
         
