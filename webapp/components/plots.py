@@ -10,26 +10,25 @@ import time
 distance_scatter = dcc.Loading(dcc.Graph(id='distance-scatter'))
 moving_average_2pt = dcc.Loading(dcc.Graph(id='moving-average-2pt'))
 moving_average_3pt = dcc.Loading(dcc.Graph(id='moving-average-3pt'))
-
-shot_map = dcc.Loading(dcc.Graph(id='shot-map'))
-controls_metric = dbc.Card(
-    [
-        html.Div(
-            [
-                dbc.Label('Metric'),
-                dcc.RadioItems(
-                    options=[
-                        {'label': 'Field Goal Percentage', 'value': 'Field Goal Percentage'},
-                        {'label': 'Shot Attempts', 'value': 'Shot Attempts'}
-                    ],
-                    value='Field Goal Percentage',
-                    id='shotmap-metric',
-                    labelStyle={'display': 'block'}
-                ),
-            ], className="mx-auto"
-        ),
-    ],
-)
+shot_map = dcc.Loading(dcc.Graph(id='shot-map',style={'marginLeft': 'auto', 'marginRight': 'auto'}))
+# controls_metric = dbc.Card(
+#     [
+#         html.Div(
+#             [
+#                 dbc.Label('Metric'),
+#                 dcc.RadioItems(
+#                     options=[
+#                         {'label': 'Field Goal Percentage', 'value': 'Field Goal Percentage'},
+#                         {'label': 'Shot Attempts', 'value': 'Shot Attempts'}
+#                     ],
+#                     value='Field Goal Percentage',
+#                     id='shotmap-metric',
+#                     labelStyle={'display': 'block'}
+#                 ),
+#             ], className="mx-auto"
+#         ),
+#     ],
+# )
 
 def create_plot_callbacks(dash_app, conn):
     #create & update plots
@@ -41,9 +40,10 @@ def create_plot_callbacks(dash_app, conn):
         Input('crossfilter-player', 'value'),
         Input('crossfilter-team', 'value'),
         Input('crossfilter-year', 'value'),
-        Input('shotmap-metric', 'value')
+        # Input('shotmap-metric', 'value')
     )
-    def update_graphs(player_name, team, year, metric):
+    
+    def update_graphs(player_name, team, year, metric='Field Goal Percentage'):
         sql_query = f"""
             select
                 shot_type, 
@@ -70,6 +70,7 @@ def create_plot_callbacks(dash_app, conn):
 
         start_time = time.time()
         dff = pd.read_sql(sql_query, conn, params=params) if len(params) > 0 else pd.read_sql(sql_query, conn)
+        dff['date'] = pd.to_datetime(dff['date'])
         dff['shotX_'] = dff['shotX'] / 50 * 500 - 250
         dff['shotY_'] = dff['shotY'] / 47 * 470 - 52.5
         print(f'DF loaded in {time.time() - start_time} sec')
@@ -91,17 +92,16 @@ def create_plot_callbacks(dash_app, conn):
                             size='count_shots',
                             size_max=40, 
                             color='shot_type_label',
-                            hover_name='distance',
-                            labels={'average_made': 'Accuracy', 'shot_type_label': 'Shot Type',},
-                            title='Average Field Goal % by Distance'
+                            # hover_name='distance',
+                            labels={'distance': 'Distance', 'average_made': 'FG%', 'shot_type_label': 'Shot Type',},
+                            title='Average FG% by Distance',
                             )
-            
-            fig.update_xaxes(
-                title='Distance',
-                showgrid=True,
-                gridcolor='LightGray',
-                dtick=10
-            )
+            fig.update_traces(hovertemplate=(
+                "<b>%{x} feet</b><br>"
+                "FG%: %{y:.2%}<br>"
+                "%{marker.size:,} shot attempts<br>"
+                "<extra></extra>"
+            ))
             fig.update_yaxes(
                 title='Accuracy',
                 tickformat='2%',
@@ -112,7 +112,14 @@ def create_plot_callbacks(dash_app, conn):
             fig.update_layout(
                 plot_bgcolor="white",
                 # margin={'l': 40, 'b': 40, 't': 40, 'r': 0},
-                hovermode='closest'
+                hovermode='closest',
+                legend=dict(
+                    orientation="h",
+                    yanchor="top",
+                    y=0.99,
+                    xanchor="right",
+                    x=0.99
+                )
             )
             return fig
 
@@ -138,7 +145,7 @@ def create_plot_callbacks(dash_app, conn):
             x_bin_size = 15
             y_bin_size = 15
             shotmap_fig = go.Figure()
-            draw_plotly_court(shotmap_fig, fig_width=700, margins=0)
+            draw_plotly_court(shotmap_fig, fig_width=500, margins=0)
             shotmap_fig.add_trace(go.Histogram2dContour(
                 x=dff['shotX_'],
                 y=dff['shotY_'],
@@ -148,22 +155,29 @@ def create_plot_callbacks(dash_app, conn):
                 line=dict(width=0),
                 hoverinfo='x+y+z',
                 hovertemplate=(
-                    f"<b>{metric}</b>: %{{z:.2}}<br>"
-                    f"X: %{{x}}<br>"
-                    f"Y: %{{y}}"
+                    f"<b>{metric}</b>: %{{z:.2%}}<br>"
+                    # f"X: %{{x}}<br>"
+                    # f"Y: %{{y}}"
                     "<extra></extra>"
                 ),
                 xbins=dict(start=-250, end=250, size=x_bin_size),
                 ybins=dict(start=-52.5, end=417.5, size=y_bin_size),
-                showscale=True,
-                colorbar=dict(title=metric)
+                showscale=False,
+                # colorbar=dict(title=metric),
+                # colorbar_xpad=False,
+                # colorbar_ypad=False,
+                # colorbar_tickformat = '.0%'
             ))
+            shotmap_fig.update_layout(
+                autosize=True, 
+                margin=dict(l=0, r=0, t=0, b=0),  
+            )
             return shotmap_fig
         
         def update_trend_charts(dff, point_value):
             start_time = time.time()
             point_value_str = f'{point_value}-pointer'
-            dfff=dff[dff['shot_type']==point_value]
+            dfff=dff[dff['shot_type']==point_value].sort_values(by='date')
             print(f'    ma filtering took {time.time() - start_time} sec')
 
             start_time = time.time()
@@ -181,35 +195,49 @@ def create_plot_callbacks(dash_app, conn):
                 x=moving_avg_df['date'],
                 y=moving_avg_df['made'],
                 mode='lines+markers',
-                marker=dict(size=10, color=moving_avg_df['marker_color']),
+                marker=dict(color=moving_avg_df['marker_color'],
+                            # size=10, 
+                            ),
                 line=dict(color='black'),
-                name=f'3-day moving average of {point_value_str} %',
-                hovertemplate="3-day moving average: %{y:.2%}"
-                                "<extra></extra>"
-            ))
+                name='3-day moving average',
+                hovertemplate=("3-day moving average: %{y:.2%}"
+                                "<extra></extra>"),
+                showlegend=False 
+                )
+            )
             fig_moving_avg.add_trace(go.Scatter(
                 x=[moving_avg_df['date'].min(),moving_avg_df['date'].max()],
                 y=[average_rate, average_rate],
                 mode='lines',
                 line=dict(color='LightGray', dash='dash'),
-                name=f'average {point_value_str} %',
+                name=f'average',
+                hovertemplate=("average: %{y:.2%}"
+                                "<extra></extra>"),
             ))
             fig_moving_avg.update_yaxes(
                         title='Accuracy',
                         tickformat='2%',
                         showgrid=True, 
                         gridcolor='LightGray',
-                        dtick=0.2
+                        # dtick=0.2
+                        nticks=4,
                     )
             fig_moving_avg.update_xaxes(
-                tickformat="%m/%d/%Y", 
+                nticks=5,
+                tickformat="%-m/%-d/%Y", 
             )
-            fig_moving_avg.update_layout(title=f'Moving Average {point_value}-Point Percentage',
+            fig_moving_avg.update_layout(title=f'{point_value}-Point FG% Moving Average',
                                         xaxis_title='Date', 
                                         yaxis_title='Percentage', 
-                                        yaxis=dict(range=[0, 1], autorange=False),
+                                        # yaxis=dict(range=[0, 1], autorange=False),
                                         plot_bgcolor='white',
-                                        hovermode='x unified')
+                                        hovermode='x unified',
+                                        legend=dict(
+                                            yanchor="bottom",
+                                            y=0.03,
+                                            xanchor="right",
+                                            x=0.99
+                                        ))
 
             return fig_moving_avg
 

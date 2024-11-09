@@ -92,36 +92,38 @@ dashboard_content = dbc.Container(
                 dbc.Col(
                     plots.distance_scatter, 
                     md=6,
-                    className="mx-auto" 
+                    # className="mx-auto" 
                 ),
                 dbc.Col(
                     plots.moving_average_2pt, 
                     md=6,
-                    className="mx-auto"
+                    # className="mx-auto"
                 ),
             ],
             align="center",
+            justify="center",
         ),
         dbc.Row(
             [
                 dbc.Col(
-                    [
-                        dbc.Row(plots.shot_map, className="mx-auto"),
-                        dbc.Row(plots.controls_metric, className="mx-auto"),
-                    ],
-                    md=6
+                    plots.shot_map,
+                    md=6,
+                    # className="mx-auto",
                 ),
                 dbc.Col(
                     plots.moving_average_3pt, 
                     md=6,
-                    className="mx-auto"
+                    # className="mx-auto"
                 ),
             ],
             align="center",
+            justify="center",
         ),
     ],
     fluid=True,
+    class_name="mt-2"
 )
+
 
 dash_app.layout = html.Div(
     [

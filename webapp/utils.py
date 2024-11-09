@@ -1,4 +1,4 @@
-# from https://gist.github.com/jpolarizing/17a8ceb6d49d45140ebbcea6f59c73ac
+# utilizes code to draw basketball court from https://gist.github.com/jpolarizing/17a8ceb6d49d45140ebbcea6f59c73ac
 
 def draw_plotly_court_orig_coords(fig, fig_width=800, margins=1):
     # uses original x and y coordinate ranges, but currently getting incorrect basketball court 
@@ -28,7 +28,7 @@ def draw_plotly_court_orig_coords(fig, fig_width=800, margins=1):
     main_line_col = "#777777"
 
     fig.update_layout(
-        margin=dict(l=20, r=20, t=20, b=20),
+     #    margin=dict(l=20, r=20, t=20, b=20),
         paper_bgcolor="white",
         plot_bgcolor="white",
         yaxis=dict(
