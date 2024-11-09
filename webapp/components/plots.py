@@ -34,10 +34,10 @@ controls_metric = dbc.Card(
 def create_plot_callbacks(dash_app, conn):
     #create & update plots
     @dash_app.callback(
-        Output('distance-scatter', 'figure'),
+        [Output('distance-scatter', 'figure'),
         Output('shot-map', 'figure'),
         Output('moving-average-2pt', 'figure'),
-        Output('moving-average-3pt', 'figure'),
+        Output('moving-average-3pt', 'figure')],
         Input('crossfilter-player', 'value'),
         Input('crossfilter-team', 'value'),
         Input('crossfilter-year', 'value'),
@@ -161,51 +161,55 @@ def create_plot_callbacks(dash_app, conn):
             return shotmap_fig
         
         def update_trend_charts(dff, point_value):
-            # point_value_str = f'{point_value}-pointer'
-            # dfff=dff[dff['shot_type']==point_value]
+            start_time = time.time()
+            point_value_str = f'{point_value}-pointer'
+            dfff=dff[dff['shot_type']==point_value]
+            print(f'    ma filtering took {time.time() - start_time} sec')
 
-            # avg_df = dfff[['date', 'made']].groupby('date').mean()
-            # moving_avg_df = avg_df.rolling(window=3).mean().reset_index()
-            # average_rate = dfff['made'].mean()
-            # moving_avg_df['marker_color'] = np.where(
-                # moving_avg_df['made'] < average_rate, 'lightcoral',
-                # np.where(moving_avg_df['made'] > average_rate, 'palegreen', 'lightgray')
-            # )
+            start_time = time.time()
+            avg_df = dfff[['date', 'made']].groupby('date').mean()
+            moving_avg_df = avg_df.rolling(window=3).mean().reset_index()
+            average_rate = dfff['made'].mean()
+            moving_avg_df['marker_color'] = np.where(
+                moving_avg_df['made'] < average_rate, 'lightcoral',
+                np.where(moving_avg_df['made'] > average_rate, 'palegreen', 'lightgray')
+            )
+            print(f'    ma agg took {time.time() - start_time} sec')
 
             fig_moving_avg = go.Figure()
-            # fig_moving_avg.add_trace(go.Scatter(
-            #     x=moving_avg_df['date'],
-            #     y=moving_avg_df['made'],
-            #     mode='lines+markers',
-            #     marker=dict(size=10, color=moving_avg_df['marker_color']),
-            #     line=dict(color='black'),
-            #     name=f'3-day moving average of {point_value_str} %',
-            #     hovertemplate="3-day moving average: %{y:.2%}"
-            #                     "<extra></extra>"
-            # ))
-            # fig_moving_avg.add_trace(go.Scatter(
-            #     x=[moving_avg_df['date'].min(),moving_avg_df['date'].max()],
-            #     y=[average_rate, average_rate],
-            #     mode='lines',
-            #     line=dict(color='LightGray', dash='dash'),
-            #     name=f'average {point_value_str} %',
-            # ))
-            # fig_moving_avg.update_yaxes(
-            #             title='Accuracy',
-            #             tickformat='2%',
-            #             showgrid=True, 
-            #             gridcolor='LightGray',
-            #             dtick=0.2
-            #         )
-            # fig_moving_avg.update_xaxes(
-            #     tickformat="%m/%d/%Y", 
-            # )
-            # fig_moving_avg.update_layout(title=f'Moving Average {point_value}-Point Percentage',
-            #                             xaxis_title='Date', 
-            #                             yaxis_title='Percentage', 
-            #                             yaxis=dict(range=[0, 1], autorange=False),
-            #                             plot_bgcolor='white',
-            #                             hovermode='x unified')
+            fig_moving_avg.add_trace(go.Scatter(
+                x=moving_avg_df['date'],
+                y=moving_avg_df['made'],
+                mode='lines+markers',
+                marker=dict(size=10, color=moving_avg_df['marker_color']),
+                line=dict(color='black'),
+                name=f'3-day moving average of {point_value_str} %',
+                hovertemplate="3-day moving average: %{y:.2%}"
+                                "<extra></extra>"
+            ))
+            fig_moving_avg.add_trace(go.Scatter(
+                x=[moving_avg_df['date'].min(),moving_avg_df['date'].max()],
+                y=[average_rate, average_rate],
+                mode='lines',
+                line=dict(color='LightGray', dash='dash'),
+                name=f'average {point_value_str} %',
+            ))
+            fig_moving_avg.update_yaxes(
+                        title='Accuracy',
+                        tickformat='2%',
+                        showgrid=True, 
+                        gridcolor='LightGray',
+                        dtick=0.2
+                    )
+            fig_moving_avg.update_xaxes(
+                tickformat="%m/%d/%Y", 
+            )
+            fig_moving_avg.update_layout(title=f'Moving Average {point_value}-Point Percentage',
+                                        xaxis_title='Date', 
+                                        yaxis_title='Percentage', 
+                                        yaxis=dict(range=[0, 1], autorange=False),
+                                        plot_bgcolor='white',
+                                        hovermode='x unified')
 
             return fig_moving_avg
 
@@ -215,7 +219,11 @@ def create_plot_callbacks(dash_app, conn):
         start_time = time.time()
         shot_map_fig = update_shot_map(dff, metric)
         print(f'shot map loaded in {time.time() - start_time} sec')
+        start_time = time.time()
         fig_moving_avg_2pt = update_trend_charts(dff, 2)
+        print(f'2 pt ma loaded in {time.time() - start_time} sec')
+        start_time = time.time()
         fig_moving_avg_3pt = update_trend_charts(dff, 3)
+        print(f'3pt ma loaded in {time.time() - start_time} sec')
         
         return scatter_fig, shot_map_fig, fig_moving_avg_2pt, fig_moving_avg_3pt

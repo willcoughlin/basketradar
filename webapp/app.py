@@ -8,6 +8,7 @@ import sqlite3
 import os
 import requests
 from flask_caching import Cache
+import argparse
 
 dash_app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP, './assets/custom.css'],  suppress_callback_exceptions=True)
 app = dash_app.server
@@ -32,7 +33,7 @@ if not os.path.exists(sqlite_file_path):
                 f.write(chunk)
     print('Database downloaded.')
 
-conn = sqlite3.connect(sqlite_file_path, check_same_thread=False)
+conn = sqlite3.connect(sqlite_file_path, check_same_thread=False, isolation_level=None)
 profile_content = dbc.Container(
     [
         dbc.Row(
@@ -138,4 +139,8 @@ similarity_calculators = profile.create_similarity_calc_funcs(cache, conn)
 profile.create_similarity_list_callbacks(dash_app, similarity_calculators)
 
 if __name__ == '__main__':
-    dash_app.run(debug=True)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', '--debug', action='store_true')
+    args = parser.parse_args()
+
+    dash_app.run(debug=args.debug)
