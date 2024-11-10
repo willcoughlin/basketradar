@@ -42,23 +42,25 @@ def create_plot_callbacks(dash_app, conn):
         Input('crossfilter-year', 'value'),
         # Input('shotmap-metric', 'value')
     )
-    
     def update_graphs(player_name, team, year, metric='Field Goal Percentage'):
         sql_query = f"""
-            select
+            select 
                 shot_type, 
                 distance, 
                 made, 
                 shotX, 
                 shotY,
-                date
+                date,
+                year
             from shots
             where
                 1 = 1
                 {'and player = (?)' if player_name != 'all_values' else ''}
                 {'and team = (?)' if team != 'all_values' else ''}
                 {'and year = (?)' if year != 'all_values' else ''}
+            limit 100
         """
+        print(f'sql_query: \n{sql_query}')
 
         params = []
         if player_name and player_name != 'all_values':
@@ -67,6 +69,8 @@ def create_plot_callbacks(dash_app, conn):
             params = params + [team]
         if year and year != 'all_values':
             params = params + [int(year)]
+        print(f'params: \n{params}')
+        # print(f'dff.head(): {dff.head()}')
 
         start_time = time.time()
         dff = pd.read_sql(sql_query, conn, params=params) if len(params) > 0 else pd.read_sql(sql_query, conn)
@@ -74,6 +78,7 @@ def create_plot_callbacks(dash_app, conn):
         dff['shotX_'] = dff['shotX'] / 50 * 500 - 250
         dff['shotY_'] = dff['shotY'] / 47 * 470 - 52.5
         print(f'DF loaded in {time.time() - start_time} sec')
+        print(f'dff.head(): \n{dff.head()}')
 
         start_time = time.time()
         agg_df = dff.groupby(['distance', 'shot_type']).agg(
@@ -82,6 +87,8 @@ def create_plot_callbacks(dash_app, conn):
         ).reset_index()
         agg_df['shot_type_label'] = agg_df.shot_type.astype(str) + '-pointer'
         print(f'DF aggregated in {time.time() - start_time} sec')
+        print(f'agg_df.head(): \n{agg_df.head()}')
+
 
         def update_scatter(dff, agg_df):
             if dff.empty:
@@ -228,7 +235,7 @@ def create_plot_callbacks(dash_app, conn):
             )
             fig_moving_avg.update_layout(title=f'{point_value}-Point FG% Moving Average',
                                         xaxis_title='Date', 
-                                        yaxis_title='Percentage', 
+                                        yaxis_title='FG %', 
                                         # yaxis=dict(range=[0, 1], autorange=False),
                                         plot_bgcolor='white',
                                         hovermode='x unified',
@@ -241,6 +248,7 @@ def create_plot_callbacks(dash_app, conn):
 
             return fig_moving_avg
 
+        # update_graphs
         start_time = time.time()
         scatter_fig = update_scatter(dff, agg_df)
         print(f'scatter loaded in {time.time() - start_time} sec')
