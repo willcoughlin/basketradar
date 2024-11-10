@@ -5,7 +5,6 @@ import dash_bootstrap_components as dbc
 from dash import Output, Input, dcc, html
 from utils import draw_plotly_court
 import pandas as pd
-import time
 
 distance_scatter = dcc.Loading(dcc.Graph(id='distance-scatter'))
 moving_average_2pt = dcc.Loading(dcc.Graph(id='moving-average-2pt'))
@@ -68,19 +67,15 @@ def create_plot_callbacks(dash_app, conn):
         if year and year != 'all_values':
             params = params + [int(year)]
 
-        start_time = time.time()
         dff = pd.read_sql(sql_query, conn, params=params) if len(params) > 0 else pd.read_sql(sql_query, conn)
         dff['shotX_'] = dff['shotX'] / 50 * 500 - 250
         dff['shotY_'] = dff['shotY'] / 47 * 470 - 52.5
-        print(f'DF loaded in {time.time() - start_time} sec')
 
-        start_time = time.time()
         agg_df = dff.groupby(['distance', 'shot_type']).agg(
             average_made=('made', 'mean'),
             count_shots=('made', 'count')
         ).reset_index()
         agg_df['shot_type_label'] = agg_df.shot_type.astype(str) + '-pointer'
-        print(f'DF aggregated in {time.time() - start_time} sec')
 
         def update_scatter(dff, agg_df):
             if dff.empty:
@@ -161,20 +156,16 @@ def create_plot_callbacks(dash_app, conn):
             return shotmap_fig
         
         def update_trend_charts(dff, point_value):
-            start_time = time.time()
             point_value_str = f'{point_value}-pointer'
             dfff=dff[dff['shot_type']==point_value]
-            print(f'    ma filtering took {time.time() - start_time} sec')
 
-            start_time = time.time()
-            avg_df = dfff[['date', 'made']].groupby('date').mean()
+            avg_df = dfff[['date', 'made']].groupby('date', sort=False).mean()
             moving_avg_df = avg_df.rolling(window=3).mean().reset_index()
             average_rate = dfff['made'].mean()
             moving_avg_df['marker_color'] = np.where(
                 moving_avg_df['made'] < average_rate, 'lightcoral',
                 np.where(moving_avg_df['made'] > average_rate, 'palegreen', 'lightgray')
             )
-            print(f'    ma agg took {time.time() - start_time} sec')
 
             fig_moving_avg = go.Figure()
             fig_moving_avg.add_trace(go.Scatter(
@@ -213,17 +204,9 @@ def create_plot_callbacks(dash_app, conn):
 
             return fig_moving_avg
 
-        start_time = time.time()
         scatter_fig = update_scatter(dff, agg_df)
-        print(f'scatter loaded in {time.time() - start_time} sec')
-        start_time = time.time()
         shot_map_fig = update_shot_map(dff, metric)
-        print(f'shot map loaded in {time.time() - start_time} sec')
-        start_time = time.time()
         fig_moving_avg_2pt = update_trend_charts(dff, 2)
-        print(f'2 pt ma loaded in {time.time() - start_time} sec')
-        start_time = time.time()
         fig_moving_avg_3pt = update_trend_charts(dff, 3)
-        print(f'3pt ma loaded in {time.time() - start_time} sec')
         
         return scatter_fig, shot_map_fig, fig_moving_avg_2pt, fig_moving_avg_3pt
