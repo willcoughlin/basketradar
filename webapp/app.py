@@ -100,6 +100,7 @@ dashboard_content = dbc.Container(
                     # className="mx-auto"
                 ),
             ],
+            style={'height': '500px '},
             align="center",
             justify="center",
         ),
@@ -108,14 +109,15 @@ dashboard_content = dbc.Container(
                 dbc.Col(
                     plots.shot_map,
                     md=6,
-                    # className="mx-auto",
+                    className='d-flex justify-content-center',
                 ),
                 dbc.Col(
                     plots.moving_average_3pt, 
                     md=6,
-                    # className="mx-auto"
+                    className='h-100',
                 ),
             ],
+            style={'height': '500px '},
             align="center",
             justify="center",
         ),
@@ -146,3 +148,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     dash_app.run(debug=args.debug)
+

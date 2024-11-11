@@ -1,7 +1,7 @@
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-import dash_bootstrap_components as dbc
+# import dash_bootstrap_components as dbc
 from dash import Output, Input, dcc, html
 from utils import draw_plotly_court
 import pandas as pd
@@ -99,7 +99,7 @@ def create_plot_callbacks(dash_app, conn):
                                 color='shot_type_label',
                                 # hover_name='distance',
                                 labels={'distance': 'Distance (feet)', 'average_made': 'FG%', 'shot_type_label': 'Shot Type',},
-                                title='Average FG% by Distance',
+                                title='Average Field Goal Percentage (FG%) by Distance',
                                 )
                 fig.update_traces(hovertemplate=(
                     "<b>%{x} feet</b><br>"
@@ -110,9 +110,8 @@ def create_plot_callbacks(dash_app, conn):
                 fig.update_layout(
                     plot_bgcolor="white",
                     # margin={'l': 40, 'b': 40, 't': 40, 'r': 0},
-                    hovermode='closest',
                     yaxis=dict(
-                        title='Accuracy',
+                        title='FG%',
                         tickformat='2%',
                         showgrid=True, 
                         gridcolor='LightGray',
@@ -129,7 +128,6 @@ def create_plot_callbacks(dash_app, conn):
                 return fig
 
         def update_shot_map(dff, metric):
-
             if dff.empty:
                 return go.Figure(data=[go.Scatter(x=[], y=[], mode='text', text=["No data available for the selected filters."])])
             else:
@@ -149,7 +147,7 @@ def create_plot_callbacks(dash_app, conn):
                 x_bin_size = 15
                 y_bin_size = 15
                 shotmap_fig = go.Figure()
-                draw_plotly_court(shotmap_fig, fig_width=500, margins=0)
+                draw_plotly_court(shotmap_fig, fig_width=400, margins=0)
                 shotmap_fig.add_trace(go.Histogram2dContour(
                     x=dff['shotX_'],
                     y=dff['shotY_'],
@@ -192,42 +190,24 @@ def create_plot_callbacks(dash_app, conn):
             moving_avg_df['average'] = average_rate
             moving_avg_df['above_avg'] = np.where(moving_avg_df['made'] > moving_avg_df['average'], moving_avg_df['made'], moving_avg_df['average'])
             moving_avg_df['below_avg'] = np.where(moving_avg_df['made'] < moving_avg_df['average'], moving_avg_df['made'], moving_avg_df['average'])
-            moving_avg_df['date_str'] = moving_avg_df['date'].dt.strftime('%-m/%-d/%Y')
+            # moving_avg_df['date_str'] = moving_avg_df['date'].dt.strftime('%-m/%-d/%Y')
             last_date = moving_avg_df['date'].max()
             one_year_ago = last_date - timedelta(days=365)
+            # data_dates =           
+            date_observations = pd.Index(pd.to_datetime(moving_avg_df['date'].dt.date.unique()))
+            date_range_index = pd.Index(pd.date_range(start=agg_date_df['date'].iloc[0], end=agg_date_df['date'].iloc[-1]).date)
+            dt_breaks = date_range_index.difference(date_observations).tolist()
 
             print(f'    ma agg took {time.time() - start_time} sec')
             # print(f'moving_avg_df.head(): \n{moving_avg_df.head()}')
 
             fig_moving_avg = go.Figure()
-
             fig_moving_avg.add_trace(go.Scatter(
                 x=moving_avg_df['date'],
                 y=moving_avg_df['average'],
                 mode='lines',
-                line=dict(color='LightGray', dash='dash'),
-                name=f'average {point_value_str} %',
-                hovertemplate=(f"{point_value_str}" + " overall average: %{y:.2%}<extra></extra>"),
-            ))
-            fig_moving_avg.add_trace(go.Scatter(
-                x=moving_avg_df['date'],
-                y=moving_avg_df['above_avg'],
-                fill='tonexty',
-                mode='none',
-                fillcolor='rgb(179,222,105)',
+                line_color="rgba(0,0,0,0)",
                 showlegend=False,
-                name=f'Above Average {point_value_str} %',
-                hovertemplate=(f"{point_value_str}" + " moving average: %{y:.2%} (above average)<extra></extra>"),
-                hoverinfo='text',
-            ))
-            fig_moving_avg.add_trace(go.Scatter(
-                x=moving_avg_df['date'],
-                y=moving_avg_df['average'],
-                mode='lines',
-                line=dict(color='LightGray', dash='dash'),
-                showlegend=False,
-                name=f'average {point_value_str} %',
-                hovertemplate=(''),
             ))
             fig_moving_avg.add_trace(go.Scatter(
                 x=moving_avg_df['date'],
@@ -236,27 +216,63 @@ def create_plot_callbacks(dash_app, conn):
                 mode='none',
                 fillcolor='lightcoral',
                 showlegend=False,
-                name=f'Below Average {point_value_str} %',
-                hovertemplate=(f"{point_value_str}" + " moving average: %{y:.2%} (below average)<extra></extra>"),
-                hoverinfo='text',
+                hovertemplate=(
+                    "<b>%{x}</b><br>"
+                    f"{point_value_str}" + " moving average: %{y:.2%} (below average)"
+                    "<extra></extra>"),
+            ))
+            fig_moving_avg.add_trace(go.Scatter(
+                x=moving_avg_df['date'],
+                y=moving_avg_df['average'],
+                mode='lines',
+                line_color="rgba(0,0,0,0)",
+                showlegend=False,
+            ))
+            fig_moving_avg.add_trace(go.Scatter(
+                x=moving_avg_df['date'],
+                y=moving_avg_df['above_avg'],
+                fill='tonexty',
+                mode='none',
+                fillcolor='rgba(0, 109, 44, 0.4)',
+                showlegend=False,
+                hovertemplate=(
+                    "<b>%{x}</b><br>"
+                    f"{point_value_str}" + " moving average: %{y:.2%} (above average)"
+                    "<extra></extra>"),
+            ))
+            fig_moving_avg.add_trace(go.Scatter(
+                x=moving_avg_df['date'],
+                y=moving_avg_df['average'],
+                mode='lines',
+                line=dict(color='Black', dash='dash'),
+                showlegend=True,
+                name=f'average {point_value_str} %',
+                hovertemplate=(
+                    "<b>%{x}</b><br>"
+                    f"{point_value_str}" + " overall average: %{y:.2%}<extra></extra>"
+                    "<extra></extra>"),
             ))
 
             fig_moving_avg.update_layout(
-                title=f'{point_value}-Point FG% Moving Average',
+                title=f'{point_value}-Pt FG% Moving Average',
                 plot_bgcolor='white',
-                hovermode='x unified',
                 xaxis=dict(
                     type="date",
-                    nticks=5,
+                    nticks=3,
                     title='Date',
                     range=[one_year_ago, last_date],
-                    rangeslider_visible=True,
+                    tickformat='%-m/%-d/%Y',
+                    rangebreaks=[dict(values=dt_breaks)],
+                    # rangeslider_visible=True,
                     rangeselector=dict(
                         buttons=list([
+                            dict(count=7, label="1w", step="day", stepmode="backward"),
                             dict(count=1, label="1m", step="month", stepmode="backward"),
                             dict(count=6, label="6m", step="month", stepmode="backward"),
                             dict(count=1, label="YTD", step="year", stepmode="todate"),
                             dict(count=1, label="1y", step="year", stepmode="backward"),
+                            dict(count=5, label="5y", step="year", stepmode="backward"),
+                            dict(count=10, label="10y", step="year", stepmode="backward"),
                             dict(step="all")
                         ])
                     )
@@ -270,7 +286,7 @@ def create_plot_callbacks(dash_app, conn):
                 ),
                 legend=dict(
                     yanchor="bottom",
-                    y=0.03,
+                    y=0.99,
                     xanchor="right",
                     x=0.99
                 )
