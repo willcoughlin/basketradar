@@ -87,13 +87,13 @@ def create_plot_callbacks(dash_app, conn, cache):
         return agg_date_df, moving_avg_df
 
     # Preload and cache unfiltered dataframe
-    @cache.cached(key_prefix='unfiltered_data')
+    @cache.cached(key_prefix='unfiltered_data', timeout=0)
     def preload_unfiltered_data():
         return filter_db_data(*['all_values'] * 3)
     preload_unfiltered_data()
 
     # Preload and cache moving avg agg on unfiltered dataframe
-    @cache.memoize()
+    @cache.memoize(timeout=0)
     def preload_unfiltered_ma(point_value):
         return agg_ma_data(preload_unfiltered_data(), point_value)
     preload_unfiltered_ma(2)
