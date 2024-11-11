@@ -31,19 +31,8 @@ shot_map = dcc.Loading(dcc.Graph(id='shot-map',style={'marginLeft': 'auto', 'mar
 #     ],
 # )
 
-def create_plot_callbacks(dash_app, conn):
-    #create & update plots
-    @dash_app.callback(
-        [Output('distance-scatter', 'figure'),
-        Output('shot-map', 'figure'),
-        Output('moving-average-2pt', 'figure'),
-        Output('moving-average-3pt', 'figure')],
-        Input('crossfilter-player', 'value'),
-        Input('crossfilter-team', 'value'),
-        Input('crossfilter-year', 'value'),
-        # Input('shotmap-metric', 'value')
-    )
-    def update_graphs(player_name, team, year, metric='Field Goal Percentage'):
+def create_plot_callbacks(dash_app, conn, cache):
+    def filter_db_data(player_name, team, year):
         sql_query = f"""
             select 
                 shot_type, 
@@ -77,7 +66,51 @@ def create_plot_callbacks(dash_app, conn):
         dff['shotY_'] = dff['shotY'] / 47 * 470 - 52.5
         print(f'DF loaded in {time.time() - start_time} sec')
         # print(f'dff.head(): \n{dff.head()}')
+        return dff
+    
+    def agg_ma_data(dff, point_value):
+        start_time = time.time()
+        agg_date_df = dff[dff['shot_type'] == point_value]
+        agg_date_df.loc[:, 'date'] = pd.to_datetime(agg_date_df['date'])
+        agg_date_df = agg_date_df.sort_values(by='date')
+        print(f'    ma filtering took {time.time() - start_time} sec')
 
+        start_time = time.time()
+        average_rate = agg_date_df['made'].mean()
+        moving_avg_df = agg_date_df[['date', 'made']].groupby('date').mean().rolling(window=3).mean().reset_index()
+        moving_avg_df['average'] = average_rate
+        moving_avg_df['above_avg'] = np.where(moving_avg_df['made'] > moving_avg_df['average'], moving_avg_df['made'], moving_avg_df['average'])
+        moving_avg_df['below_avg'] = np.where(moving_avg_df['made'] < moving_avg_df['average'], moving_avg_df['made'], moving_avg_df['average'])
+        # moving_avg_df['date_str'] = moving_avg_df['date'].dt.strftime('%-m/%-d/%Y')
+        print(f'    ma agg took {time.time() - start_time} sec')
+        
+        return agg_date_df, moving_avg_df
+
+    # Preload and cache unfiltered dataframe
+    @cache.cached(key_prefix='unfiltered_data')
+    def preload_unfiltered_data():
+        return filter_db_data(*['all_values'] * 3)
+    preload_unfiltered_data()
+
+    # Preload and cache moving avg agg on unfiltered dataframe
+    @cache.memoize()
+    def preload_unfiltered_ma(point_value):
+        return agg_ma_data(preload_unfiltered_data(), point_value)
+    preload_unfiltered_ma(2)
+    preload_unfiltered_ma(3)
+
+    #create & update plots
+    @dash_app.callback(
+        [Output('distance-scatter', 'figure'),
+        Output('shot-map', 'figure'),
+        Output('moving-average-2pt', 'figure'),
+        Output('moving-average-3pt', 'figure')],
+        Input('crossfilter-player', 'value'),
+        Input('crossfilter-team', 'value'),
+        Input('crossfilter-year', 'value'),
+        # Input('shotmap-metric', 'value')
+    )
+    def update_graphs(player_name, team, year, metric='Field Goal Percentage'):
         def update_scatter(dff):
             if dff.empty:
                 return px.scatter(title="No data available for the selected filters.")
@@ -177,20 +210,13 @@ def create_plot_callbacks(dash_app, conn):
                 return shotmap_fig
         
         def update_trend_charts(dff, point_value):
-            start_time = time.time()
             point_value_str = f'{point_value}-pointer'
-            agg_date_df = dff[dff['shot_type'] == point_value]
-            agg_date_df.loc[:, 'date'] = pd.to_datetime(agg_date_df['date'])
-            agg_date_df = agg_date_df.sort_values(by='date')
-            print(f'    ma filtering took {time.time() - start_time} sec')
 
-            start_time = time.time()
-            average_rate = agg_date_df['made'].mean()
-            moving_avg_df = agg_date_df[['date', 'made']].groupby('date').mean().rolling(window=3).mean().reset_index()
-            moving_avg_df['average'] = average_rate
-            moving_avg_df['above_avg'] = np.where(moving_avg_df['made'] > moving_avg_df['average'], moving_avg_df['made'], moving_avg_df['average'])
-            moving_avg_df['below_avg'] = np.where(moving_avg_df['made'] < moving_avg_df['average'], moving_avg_df['made'], moving_avg_df['average'])
-            # moving_avg_df['date_str'] = moving_avg_df['date'].dt.strftime('%-m/%-d/%Y')
+            if player_name == 'all_values' and team == 'all_values' and year == 'all_values':
+                agg_date_df, moving_avg_df = preload_unfiltered_ma(point_value)
+            else:
+                agg_date_df, moving_avg_df = agg_ma_data(dff, point_value)            
+            
             last_date = moving_avg_df['date'].max()
             one_year_ago = last_date - timedelta(days=365)
             # data_dates =           
@@ -198,7 +224,6 @@ def create_plot_callbacks(dash_app, conn):
             date_range_index = pd.Index(pd.date_range(start=agg_date_df['date'].iloc[0], end=agg_date_df['date'].iloc[-1]).date)
             dt_breaks = date_range_index.difference(date_observations).tolist()
 
-            print(f'    ma agg took {time.time() - start_time} sec')
             # print(f'moving_avg_df.head(): \n{moving_avg_df.head()}')
 
             fig_moving_avg = go.Figure()
@@ -292,6 +317,11 @@ def create_plot_callbacks(dash_app, conn):
                 )
             )
             return fig_moving_avg
+
+        if player_name == 'all_values' and team == 'all_values' and year == 'all_values':
+            dff = preload_unfiltered_data()
+        else:
+            dff = filter_db_data(player_name, team, year)
 
         # update_graphs
         start_time = time.time()
