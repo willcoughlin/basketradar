@@ -30,12 +30,19 @@ class clean_data:
 
        return df
 
+    def get_year_column(self, df):
+       """
+       create a year column based on match id
+       """
+       df['year'] = df['match_id'].apply(lambda id: int(id[:4]))
+
+       return df
 
     def remove_columns(self,df):
       """
       removes columns that are not needed
       """
-      return df[['date','match_id','shotX','shotY','quarter','player','team','made','distance','shot_type']]
+      return df[['date','year','match_id','shotX','shotY','quarter','player','team','made','distance','shot_type']]
 
     def get_location(self,df):
       """
@@ -43,7 +50,7 @@ class clean_data:
       """
       df = df.copy()
       df.loc[:, 'game_location'] = df['match_id'].str.replace('[^a-zA-Z]', '', regex=True)
-      return df[['date','game_location','shotX','shotY','quarter','player','team','made','distance','shot_type']]
+      return df[['date','year','game_location','shotX','shotY','quarter','player','team','made','distance','shot_type']]
 
     def get_quarter(self,df):
       """
@@ -125,6 +132,7 @@ class clean_data:
     def full_clense(self):
       self.assert_columns(self.df)
       df = self.get_date_column(self.df)
+      df = self.get_year_column(self.df)
       df = self.remove_columns(df)
       df = self.get_location(df)
       df = self.get_quarter(df)

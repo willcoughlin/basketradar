@@ -8,6 +8,7 @@ import sqlite3
 import os
 import requests
 from flask_caching import Cache
+import argparse
 
 dash_app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP, './assets/custom.css'],  suppress_callback_exceptions=True)
 app = dash_app.server
@@ -32,7 +33,7 @@ if not os.path.exists(sqlite_file_path):
                 f.write(chunk)
     print('Database downloaded.')
 
-conn = sqlite3.connect(sqlite_file_path, check_same_thread=False)
+conn = sqlite3.connect(sqlite_file_path, check_same_thread=False, isolation_level=None)
 profile_content = dbc.Container(
     [
         dbc.Row(
@@ -91,36 +92,40 @@ dashboard_content = dbc.Container(
                 dbc.Col(
                     plots.distance_scatter, 
                     md=6,
-                    className="mx-auto" 
+                    # className="mx-auto" 
                 ),
                 dbc.Col(
                     plots.moving_average_2pt, 
                     md=6,
-                    className="mx-auto"
+                    # className="mx-auto"
                 ),
             ],
+            style={'height': '500px '},
             align="center",
+            justify="center",
         ),
         dbc.Row(
             [
                 dbc.Col(
-                    [
-                        dbc.Row(plots.shot_map, className="mx-auto"),
-                        dbc.Row(plots.controls_metric, className="mx-auto"),
-                    ],
-                    md=6
+                    plots.shot_map,
+                    md=6,
+                    className='d-flex justify-content-center',
                 ),
                 dbc.Col(
                     plots.moving_average_3pt, 
                     md=6,
-                    className="mx-auto"
+                    className='h-100',
                 ),
             ],
+            style={'height': '500px '},
             align="center",
+            justify="center",
         ),
     ],
     fluid=True,
+    class_name="mt-2"
 )
+
 
 dash_app.layout = html.Div(
     [
@@ -138,4 +143,9 @@ similarity_calculators = profile.create_similarity_calc_funcs(cache, conn)
 profile.create_similarity_list_callbacks(dash_app, similarity_calculators)
 
 if __name__ == '__main__':
-    dash_app.run(debug=True)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', '--debug', action='store_true')
+    args = parser.parse_args()
+
+    dash_app.run(debug=args.debug)
+
