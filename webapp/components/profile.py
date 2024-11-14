@@ -1,7 +1,12 @@
-from dash import html, dcc, Output, Input, ctx
+from dash import html, dcc, Output, Input, ctx, State
+import plotly.express as px
+from plotly.figure_factory import create_dendrogram
 import dash_bootstrap_components as dbc
 import pandas as pd
 import urllib.parse
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics.pairwise import euclidean_distances
 
 # Basic filters
 
@@ -304,7 +309,86 @@ def similarity_filters():
 def similarity_list():
     return dcc.Loading(html.Ol([], id="similarity-list-results"))
 
-def create_similarity_list_callbacks(dash_app, similarity_calculators):
+def launch_modal_btn():
+    return dbc.Button("Show Similarity Chart", id='open-similarity-modal', n_clicks=0)
+
+def similarity_modal():
+    modal = dbc.Modal(
+        [
+            dbc.ModalHeader(dbc.ModalTitle("Similarity Chart")),
+            dbc.ModalBody(id='similarity-modal-body'),
+            dbc.ModalFooter(
+                dbc.Button(
+                    "Close", id="close", className="ms-auto", n_clicks=0
+                )
+            ),
+        ],
+        id="similarity-modal",
+        is_open=False,
+        size="xl"
+    )
+    return modal
+
+def create_similarity_dendrogram(df, selected_player, similar_players):
+    X = df.drop(columns='player').values
+    y = df.player.values
+    
+    X_scaled = StandardScaler().fit_transform(X)
+    
+    fig = create_dendrogram(X_scaled, labels=y, color_threshold=100, orientation='left')
+    
+    tick_idx = np.argwhere(fig.layout.yaxis.ticktext == selected_player)[0][0]
+
+    zoomed_y_axis = [fig.layout.yaxis.tickvals[tick_idx - 9], fig.layout.yaxis.tickvals[tick_idx + 10]]
+    zoomed_x_axis = [0, 2]
+
+    fig.update_xaxes(range=zoomed_x_axis, minallowed=0)#, rangeslider=dict(visible=True))
+    fig.update_yaxes(range=zoomed_y_axis)
+    # fig.show(config={
+    #     'modeBarButtonsToRemove': ['autoScale', 'resetScale']
+    # })
+    # fig.layout.update({
+        # 'width': 900,
+    # })
+
+    fig.update_layout(autosize=True, margin=dict(t=50, b=50))
+
+    return dcc.Graph(figure=fig, id='dendrogram', style={'width': '100%'})
+
+def create_similarity_scatter(df, selected_player, similar_players):    
+    target = df.player.apply(lambda x: f'{selected_player} and most similar' if x in [selected_player, *similar_players] else 'Others') 
+    size = df.player.apply(lambda x: 3 if x == selected_player else 1)
+
+    X = df.drop(columns='player').values
+    y = df.player.values
+    
+    X_scaled = StandardScaler().fit_transform(X)
+
+    fig_scatter2 = px.scatter(x=X_scaled[:,0], y=X_scaled[:,2], hover_name=y, hover_data=[target], color=target, size=size)
+
+    bigger_series = 0 if len(fig_scatter2.data[0].x) > len(fig_scatter2.data[1].x) else 1
+    smaller_series = 1 - bigger_series
+
+    min_x = min(fig_scatter2.data[bigger_series].x)
+    max_x = max(fig_scatter2.data[bigger_series].x)
+    range_x = max_x - min_x
+
+    min_y = min(fig_scatter2.data[bigger_series].y)
+    max_y = max(fig_scatter2.data[bigger_series].y)
+    range_y = max_y + min_y
+
+    tick_idx = np.argwhere(fig_scatter2.data[smaller_series].hovertext == selected_player)[0][0]
+    target_x = fig_scatter2.data[smaller_series].x[tick_idx]
+    target_y = fig_scatter2.data[smaller_series].y[tick_idx]
+
+    zoomed_x_axis = [target_x - (0.05 * range_x), target_x + (0.05 * range_x)]
+    zoomed_y_axis = [target_y - (0.05 * range_y), target_y + (0.05 * range_y)]
+    fig_scatter2.update_xaxes(range=zoomed_x_axis)
+    fig_scatter2.update_yaxes(range=zoomed_y_axis)
+
+    return dcc.Graph(figure=fig_scatter2)
+
+def create_similarity_list_callbacks(dash_app, similarity_calculators, conn):
     get_player_similarities = similarity_calculators[0]
     get_player_similarities_by_team = similarity_calculators[1]
     get_player_similarities_by_year = similarity_calculators[2]
@@ -342,6 +426,7 @@ def create_similarity_list_callbacks(dash_app, similarity_calculators):
 
     @dash_app.callback(
         Output('similarity-list-results', 'children'),
+        Output('similarity-modal-body', 'children'),
         Input('crossfilter-year', 'value'),
         Input('crossfilter-player', 'value'),
         Input('crossfilter-team', 'value'),
@@ -350,10 +435,12 @@ def create_similarity_list_callbacks(dash_app, similarity_calculators):
     )
     def update_similarity_list(selected_year, selected_player, selected_team, similarity_attributes, filters):
         if selected_player == 'all_values': 
-            return []
+            return [], None
         
         if len(similarity_attributes) == 0:
-            return [html.Li('No Filters Selected!', style={'list-style-type': 'none'})]
+            return [html.Li('No Filters Selected!', style={'list-style-type': 'none'})], None
+
+        df = pd.read_sql('select player, avg_distance, avg_shotX, accuracy, top_quarter from player_profiles', conn)
 
         # Grouped by player
         if selected_team == 'all_values' and selected_year and selected_year == 'all_values':
@@ -366,9 +453,10 @@ def create_similarity_list_callbacks(dash_app, similarity_calculators):
                             n_clicks=0,
                             id=f'similar-player-btn-{i}',
                             href=f'/?{urllib.parse.urlencode({"player": result})}'
-                        )
+                        ),
+                        className='similar-player-link'
                     ) 
-                    for i, result in enumerate(top.index)]
+                    for i, result in enumerate(top.index)], create_similarity_dendrogram(df, selected_player, top.index)
         
         # Grouped by player and team
         elif selected_team != 'all_values' and selected_year == 'all_values':
@@ -387,9 +475,10 @@ def create_similarity_list_callbacks(dash_app, similarity_calculators):
                             n_clicks=0, 
                             id=f'similar-player_btn-{i}',
                             href=f'/?{urllib.parse.urlencode({"player": player, "team": team})}'
-                        )
+                        ),
+                        className='similar-player-link'
                     ) 
-                    for i, (player, team) in enumerate(top.index)]
+                    for i, (player, team) in enumerate(top.index)], create_similarity_dendrogram(df, selected_player, top.index)
         
         # Grouped by player and year
         elif selected_team == 'all_values' and selected_year != 'all_values':
@@ -408,9 +497,10 @@ def create_similarity_list_callbacks(dash_app, similarity_calculators):
                             n_clicks=0,
                             id=f'similar-player_btn-{i}',
                             href=f'/?{urllib.parse.urlencode({"player": player, "year": year})}'
-                        )
+                        ),
+                        className='similar-player-link'
                     ) 
-                    for i, (player, year) in enumerate(top.index)]
+                    for i, (player, year) in enumerate(top.index)], create_similarity_dendrogram(df, selected_player, top.index)
         
         # Grouped by player, team, and year
         else:
@@ -433,15 +523,22 @@ def create_similarity_list_callbacks(dash_app, similarity_calculators):
                             n_clicks=0,
                             id='similar-player_btn-{i}',
                             href=f'/?{urllib.parse.urlencode({"player": player, "team": team, "year": year})}'
-                        )
+                        ),
+                        className='similar-player-link'
                     ) 
-                    for i, (player, team, year) in enumerate(top.index)]
+                    for i, (player, team, year) in enumerate(top.index)], create_similarity_dendrogram(df, selected_player, top.index)
+                
+    @dash_app.callback(
+        Output("similarity-modal", "is_open"),
+        [Input("open-similarity-modal", "n_clicks"), Input("close", "n_clicks")],
+        [State("similarity-modal", "is_open")],
+    )
+    def toggle_modal(n1, n2, is_open):
+        if n1 or n2:
+            return not is_open
+        return is_open
 
 def create_similarity_calc_funcs(cache, conn):
-    from sklearn.preprocessing import StandardScaler
-    from sklearn.metrics.pairwise import euclidean_distances
-    import pandas as pd
-
     @cache.memoize()
     def similarities_by_player(features):
         player_profiles = pd.read_sql('select * from player_profiles', conn)

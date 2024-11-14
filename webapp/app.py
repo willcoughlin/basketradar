@@ -65,12 +65,15 @@ profile_content = dbc.Container(
                         dbc.Row([dbc.Col(html.H5('Similarity Explorer'), md=12)]),
                         dbc.Row(
                             [
-                                dbc.Col(profile.similarity_filters(), md=4),
+                                dbc.Col(profile.similarity_filters(), md=6),
                                 dbc.Col([
                                     html.H6('Most Similar:'),
                                     profile.similarity_list()
-                                ], md=8)
+                                ], md=6)
                             ]
+                        ),
+                        dbc.Row(
+                            [dbc.Col(profile.launch_modal_btn(), md=6)]
                         )
                     ],
                     md=4,
@@ -80,6 +83,7 @@ profile_content = dbc.Container(
             ],
             style={'height': '300px '}
         ),
+        profile.similarity_modal()
     ],
     fluid=True,
     class_name="mt-2"
@@ -126,7 +130,6 @@ dashboard_content = dbc.Container(
     class_name="mt-2"
 )
 
-
 dash_app.layout = html.Div(
     [
         navbar,  
@@ -140,7 +143,7 @@ profile.create_filter_callbacks(dash_app, player_images, team_images, conn)
 profile.create_slider_callbacks(dash_app, conn)
 
 similarity_calculators = profile.create_similarity_calc_funcs(cache, conn)
-profile.create_similarity_list_callbacks(dash_app, similarity_calculators)
+profile.create_similarity_list_callbacks(dash_app, similarity_calculators, conn)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
