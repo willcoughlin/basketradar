@@ -135,7 +135,7 @@ dash_app.layout = html.Div(
     ]
 )
 
-plots.create_plot_callbacks(dash_app, conn)
+plots.create_plot_callbacks(dash_app, conn, cache)
 profile.create_filter_callbacks(dash_app, player_images, team_images, conn)
 profile.create_slider_callbacks(dash_app, conn)
 

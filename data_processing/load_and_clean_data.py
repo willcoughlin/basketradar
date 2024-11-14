@@ -40,7 +40,8 @@ def stack_csvs(output_file):
     # Loop through all files in the input folder
     for file_name in os.listdir(input_folder):
         # Check if the file is a CSV
-        if file_name.endswith('.csv'):
+        year_from_file = int(file_name[:4])
+        if file_name.endswith('.csv') and year_from_file > 2013:
             file_path = os.path.join(input_folder, file_name)
             # Read the CSV file and append the DataFrame to the list
             df = pd.read_csv(file_path)
