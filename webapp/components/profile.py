@@ -309,8 +309,23 @@ def similarity_filters():
 def similarity_list():
     return dcc.Loading(html.Ol([], id="similarity-list-results"))
 
+def dissimilarity_list():
+    return dcc.Loading(html.Ol([], id='dissimilarity-list-results'))
+
+def player_list_btn(i, text, urlparams, dissimilar=False):
+    return html.Li(
+        dbc.Button(
+            text,
+            color='link', 
+            n_clicks=0,
+            id=f'{"similar" if not dissimilar else "dissimilar"}-player-btn-{i}',
+            href=f'/?{urllib.parse.urlencode(urlparams)}'
+        ),
+        className='similar-player-link'
+    ) 
+
 def launch_modal_btn():
-    return dbc.Button("Show Similarity Chart", id='open-similarity-modal', n_clicks=0)
+    return dbc.Button(['Visualize ', html.I(className="bi bi-stars")], id='open-similarity-modal', n_clicks=0, style={'width': '100%'})
 
 def similarity_modal():
     modal = dbc.Modal(
@@ -426,6 +441,7 @@ def create_similarity_list_callbacks(dash_app, similarity_calculators, conn):
 
     @dash_app.callback(
         Output('similarity-list-results', 'children'),
+        Output('dissimilarity-list-results', 'children'),
         Output('similarity-modal-body', 'children'),
         Input('crossfilter-year', 'value'),
         Input('crossfilter-player', 'value'),
@@ -435,28 +451,28 @@ def create_similarity_list_callbacks(dash_app, similarity_calculators, conn):
     )
     def update_similarity_list(selected_year, selected_player, selected_team, similarity_attributes, filters):
         if selected_player == 'all_values': 
-            return [], None
+            return [], [], None
         
         if len(similarity_attributes) == 0:
-            return [html.Li('No Filters Selected!', style={'list-style-type': 'none'})], None
+            return (
+                [html.Li('No Filters Selected!', style={'list-style-type': 'none'})], 
+                [html.Li('No Filters Selected!', style={'list-style-type': 'none'})],
+                None
+            )
 
         df = pd.read_sql('select player, avg_distance, avg_shotX, accuracy, top_quarter from player_profiles', conn)
 
         # Grouped by player
         if selected_team == 'all_values' and selected_year and selected_year == 'all_values':
             player_similarities = get_player_similarities(similarity_attributes)
-            top = player_similarities[selected_player].sort_values(ascending=True)[1:6]
-            return [html.Li(
-                        dbc.Button(
-                            result, 
-                            color='link', 
-                            n_clicks=0,
-                            id=f'similar-player-btn-{i}',
-                            href=f'/?{urllib.parse.urlencode({"player": result})}'
-                        ),
-                        className='similar-player-link'
-                    ) 
-                    for i, result in enumerate(top.index)], create_similarity_dendrogram(df, selected_player, top.index)
+            sorted_sims = player_similarities[selected_player].sort_values(ascending=True)
+            top = sorted_sims[1:4]
+            bottom = player_similarities[-3:]
+            return (
+                [player_list_btn(i, result, {"player": result}) for i, result in enumerate(top.index)], 
+                [player_list_btn(i, result, {"player": result}, dissimilar=True) for i, result in enumerate(bottom.index)],
+                create_similarity_dendrogram(df, selected_player, top.index)
+            )
         
         # Grouped by player and team
         elif selected_team != 'all_values' and selected_year == 'all_values':
@@ -466,19 +482,14 @@ def create_similarity_list_callbacks(dash_app, similarity_calculators, conn):
             # Optional filter
             if 'same-team' in filters:
                 similar = similar[similar.index.get_level_values('team') == selected_team]
-            
-            top = similar.sort_values(ascending=True)[1:6]
-            return [html.Li(
-                        dbc.Button(
-                            f'{player} ({team})', 
-                            color='link', 
-                            n_clicks=0, 
-                            id=f'similar-player_btn-{i}',
-                            href=f'/?{urllib.parse.urlencode({"player": player, "team": team})}'
-                        ),
-                        className='similar-player-link'
-                    ) 
-                    for i, (player, team) in enumerate(top.index)], create_similarity_dendrogram(df, selected_player, top.index)
+            sorted_sims = similar.sort_values(ascending=True)
+            top = sorted_sims[1:4]
+            bottom = sorted_sims[-3:]
+            return (
+                [player_list_btn(i, f'{player} ({team})',{"player": player, "team": team}) for i, (player, team) in enumerate(top.index)], 
+                [player_list_btn(i, f'{player} ({team})',{"player": player, "team": team}, dissimilar=True) for i, (player, team) in enumerate(bottom.index)], 
+                create_similarity_dendrogram(df, selected_player, top.index)
+            )
         
         # Grouped by player and year
         elif selected_team == 'all_values' and selected_year != 'all_values':
@@ -489,18 +500,14 @@ def create_similarity_list_callbacks(dash_app, similarity_calculators, conn):
             if 'same-year' in filters:
                 similar = similar[similar.index.get_level_values('year') == selected_year]
             
-            top = similar.sort_values(ascending=True)[1:6]
-            return [html.Li(
-                        dbc.Button(
-                            f'{player} ({year})', 
-                            color='link', 
-                            n_clicks=0,
-                            id=f'similar-player_btn-{i}',
-                            href=f'/?{urllib.parse.urlencode({"player": player, "year": year})}'
-                        ),
-                        className='similar-player-link'
-                    ) 
-                    for i, (player, year) in enumerate(top.index)], create_similarity_dendrogram(df, selected_player, top.index)
+            sorted_sims = similar.sort_values(ascending=True)
+            top = sorted_sims[1:4]
+            bottom = sorted_sims[-3:]
+            return (
+                [player_list_btn(i, f'{player} ({year})',{"player": player, "year": year}) for i, (player, year) in enumerate(top.index)], 
+                [player_list_btn(i, f'{player} ({year})',{"player": player, "year": year}, dissimilar=False) for i, (player, year) in enumerate(bottom.index)], 
+                create_similarity_dendrogram(df, selected_player, top.index)
+            )
         
         # Grouped by player, team, and year
         else:
@@ -515,18 +522,14 @@ def create_similarity_list_callbacks(dash_app, similarity_calculators, conn):
             elif 'same-year' in filters:
                 similar = similar[similar.index.get_level_values('year') == selected_year]
 
-            top = similar.sort_values(ascending=True)[1:6]
-            return [html.Li(
-                        dbc.Button(
-                            f'{player} ({team} {year})', 
-                            color='link', 
-                            n_clicks=0,
-                            id='similar-player_btn-{i}',
-                            href=f'/?{urllib.parse.urlencode({"player": player, "team": team, "year": year})}'
-                        ),
-                        className='similar-player-link'
-                    ) 
-                    for i, (player, team, year) in enumerate(top.index)], create_similarity_dendrogram(df, selected_player, top.index)
+            sorted_sims = similar.sort_values(ascending=True)
+            top = sorted_sims[1:4]
+            bottom = sorted_sims[-3:]
+            return (
+                [player_list_btn(i, f'{player} ({team} {year})', {"player": player, "team": team, "year": year}) for i, (player, team, year) in enumerate(top.index)], 
+                [player_list_btn(i, f'{player} ({team} {year})', {"player": player, "team": team, "year": year}, dissimilar=False) for i, (player, team, year) in enumerate(bottom.index)], 
+                create_similarity_dendrogram(df, selected_player, top.index)
+            )
                 
     @dash_app.callback(
         Output("similarity-modal", "is_open"),

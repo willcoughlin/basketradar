@@ -10,7 +10,7 @@ import requests
 from flask_caching import Cache
 import argparse
 
-dash_app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP, './assets/custom.css'],  suppress_callback_exceptions=True)
+dash_app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP, dbc.icons.BOOTSTRAP, './assets/custom.css'],  suppress_callback_exceptions=True)
 app = dash_app.server
 
 cache = Cache(app, config={
@@ -62,21 +62,26 @@ profile_content = dbc.Container(
                         style={'display': 'flex', 'align-items': 'center', 'justify-content': 'left'}),
                 dbc.Col(
                     [
-                        dbc.Row([dbc.Col(html.H5('Similarity Explorer'), md=12)]),
                         dbc.Row(
                             [
-                                dbc.Col(profile.similarity_filters(), md=6),
-                                dbc.Col([
-                                    html.H6('Most Similar:'),
-                                    profile.similarity_list()
-                                ], md=6)
+                                dbc.Col(html.H5('Similarity Explorer'), md=6),
+                                
                             ]
                         ),
                         dbc.Row(
-                            [dbc.Col(profile.launch_modal_btn(), md=6)]
-                        )
+                            [
+                                dbc.Col(profile.similarity_filters(), md=5),
+                                dbc.Col([
+                                    html.H6('Most Similar:'),
+                                    profile.similarity_list(),
+                                    html.H6('Least Similar:'),
+                                    profile.dissimilarity_list()
+                                ], md=7)
+                            ]
+                        ),
+                        dbc.Row([dbc.Col(profile.launch_modal_btn(), md=10)])
                     ],
-                    md=4,
+                    md=5,
                     id='similarity-filter-col',
                     className='d-none'
                 ),
