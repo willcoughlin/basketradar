@@ -330,8 +330,32 @@ def launch_modal_btn():
 def similarity_modal():
     modal = dbc.Modal(
         [
-            dbc.ModalHeader(dbc.ModalTitle("Similarity Chart")),
-            dbc.ModalBody(id='similarity-modal-body'),
+            dbc.ModalHeader(dbc.ModalTitle("Similarity Visualizer")),
+            dbc.ModalBody(
+                [
+                    html.Div(
+                        [ 
+                            html.Div(
+                                [
+                                    html.Strong('Similarity Attributes'),
+                                    html.Div([], id='modal-attributes-container')
+                                ],
+                                style={'width': '40%'}
+                            ),
+                            html.Div(
+                                [
+                                    html.Strong('Filters'),
+                                    html.Div([], id='modal-filters-container')
+                                ],
+                                style={'width': '40%'},
+                                id='modal-filters-container-parent'
+                            )  
+                        ],
+                        style={'display': 'flex', 'justify-content': 'space-around'}
+                    ),
+                    html.Div(id='similarity-modal-body'),
+                ]
+            ),
             dbc.ModalFooter(
                 dbc.Button(
                     "Close", id="close", className="ms-auto", n_clicks=0
@@ -340,7 +364,7 @@ def similarity_modal():
         ],
         id="similarity-modal",
         is_open=False,
-        size="xl"
+        size="lg"
     )
     return modal
 
@@ -438,6 +462,38 @@ def create_similarity_list_callbacks(dash_app, similarity_calculators, conn):
         filter_vals = cur_filter_vals or []
 
         return options, [v for v in filter_vals if v in [d['value'] for d in options]], '', 'd-none' if len(options) == 0 else ''
+
+    @dash_app.callback(
+        Output('modal-attributes-container', 'children'),
+        Output('modal-filters-container', 'children'),
+        Output('modal-filters-container-parent', 'className'),
+        Input('similarity-attributes', 'value'),
+        Input('similarity-filters', 'value'),
+        Input('similarity-filters', 'className')
+    )
+    def update_modal_pills(selected_attrs, selected_filters, filter_className):
+        attr_map = {
+            'avg_distance': 'Average Distance', 
+            'avg_shotX': 'Side Preference', 
+            'accuracy': 'Accuracy',
+            'top_quarter': 'Top Quarter'
+        }
+
+        filter_map = {
+            'same-team': 'Same Team', 
+            'same-year': 'Same Year', 
+        }
+
+        if 'd-none' in filter_className:
+            filter_pills = []
+            filter_className = 'd-none'
+        else:
+            filter_pills = [dbc.Badge(filter_map[f], pill=True, color="primary", className="me-1") for f in selected_filters]
+            filter_className = '' if len(filter_pills) > 0 else 'd-none'
+
+        attr_pills = [dbc.Badge(attr_map[a], pill=True, color="primary", className="me-1") for a in selected_attrs]
+
+        return attr_pills, filter_pills, filter_className
 
     @dash_app.callback(
         Output('similarity-list-results', 'children'),
