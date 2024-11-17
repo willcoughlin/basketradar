@@ -122,7 +122,6 @@ def create_plot_callbacks(dash_app, conn, cache):
                 # drop points that are more than 23 ft from basket yet labeled a 2-pointer
                 agg_dist_df = agg_dist_df.drop(agg_dist_df[(agg_dist_df.distance>23) & (agg_dist_df.shot_type==2)].index)
                 
-                print(f'agg_dist_df.head(): {agg_dist_df.head()}')
                 print(f'DF aggregated in {time.time() - start_time} sec')
 
                 fig = go.Figure(data=[go.Scatter(
@@ -152,6 +151,7 @@ def create_plot_callbacks(dash_app, conn, cache):
                 ))
                 fig.update_layout(
                     plot_bgcolor="white",
+                    height=400,
                     # margin={'l': 40, 'b': 40, 't': 40, 'r': 0},
                     yaxis=dict(
                         title='FG%',
@@ -190,7 +190,7 @@ def create_plot_callbacks(dash_app, conn, cache):
                 x_bin_size = 15
                 y_bin_size = 15
                 shotmap_fig = go.Figure()
-                draw_plotly_court(shotmap_fig, fig_width=1000, margins=0)
+                draw_plotly_court(shotmap_fig, fig_width=1050, margins=0)
                 shotmap_fig.add_trace(go.Histogram2dContour(
                     x=dff['shotX_'],
                     y=dff['shotY_'],
@@ -206,15 +206,30 @@ def create_plot_callbacks(dash_app, conn, cache):
                     xbins=dict(start=-250, end=250, size=x_bin_size),
                     ybins=dict(start=-52.5, end=417.5, size=y_bin_size),
                     showscale=True,
-                    colorbar=dict(title='FG%'),
+                    colorbar=dict(
+                        title='FG%',
+                        orientation='h',
+                        x=0.5,
+                        y=-0.1, 
+                        xanchor='center', 
+                        yanchor='bottom', 
+                        tickformat='.0%',
+                        # thickness=15,
+                        len=0.8
+                    ),
                     colorbar_xpad=False,
                     colorbar_ypad=False,
-                    colorbar_tickformat = '.0%'
                 ))
                 shotmap_fig.update_layout(
-                    title='Shooting Accuracy Shot Map',
+                    title=dict(
+                        text='Shooting Accuracy Shot Map',
+                        x=0,
+                        y=0.99,
+                        xanchor='left',  
+                        yanchor='top'
+                    ),
                     autosize=True, 
-                    margin=dict(l=0, r=0, t=30, b=0),  
+                    margin=dict(l=0, r=0, t=35, b=0),  
                 )
                 return shotmap_fig
         
@@ -229,7 +244,6 @@ def create_plot_callbacks(dash_app, conn, cache):
             last_date = moving_avg_df.index.max()
             six_mo_ago = last_date - relativedelta(months=6)
             first_date = max(moving_avg_df.index.min(), six_mo_ago)
-            print(f'first_date: {first_date}')
             date_range_index = pd.Index(pd.date_range(start=moving_avg_df.index[0], end=moving_avg_df.index[-1]).date)
             dt_breaks = date_range_index.difference(moving_avg_df.index).tolist()
 
@@ -237,7 +251,7 @@ def create_plot_callbacks(dash_app, conn, cache):
                 rows=2,
                 cols=1,
                 shared_xaxes=True, 
-                # vertical_spacing=0.1
+                vertical_spacing=0.00,
             )
 
             for i, col in enumerate(['2','3'], start=1):
@@ -303,7 +317,7 @@ def create_plot_callbacks(dash_app, conn, cache):
                 fig_moving_avg.update_xaxes(
                     title='Date' if i == 2 else '',
                     type="date",
-                    range=[six_mo_ago, last_date],
+                    range=[first_date, last_date],
                     rangebreaks=[dict(values=dt_breaks)],
                     row=i,
                     col=1
@@ -337,7 +351,7 @@ def create_plot_callbacks(dash_app, conn, cache):
             fig_moving_avg.update_layout(
                 title='Shooting Accuracy 3-day Moving Average',
                 plot_bgcolor='white',
-                height=800,
+                height=700,
                 annotations=[
                     dict(
                         yanchor="bottom",

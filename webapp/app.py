@@ -108,19 +108,19 @@ dashboard_content = dbc.Container(
                         dbc.Row(
                             dbc.Col(
                                 plots.distance_scatter,
-                                md=12,
+                                # md=12,
                                 # className="mx-auto" 
                             )
                         ),
                         dbc.Row(
                             dbc.Col(
                                 plots.moving_average,
-                                md=12,  
-                                className='h-100',
+                                # md=12,  
+                                # className='h-100',
                             )
                         ),
                     ],
-                    md=6 
+                    md=6
                 ),
             ],
             style={'height': '500px '},
