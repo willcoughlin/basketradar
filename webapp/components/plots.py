@@ -117,24 +117,33 @@ def create_plot_callbacks(dash_app, conn, cache):
                     count_shots=('made', 'count')
                 ).reset_index()
                 agg_dist_df['shot_type_label'] = agg_dist_df.shot_type.astype(str) + '-pointer'
+                # drop points that are less than 22 ft from basket yet labeled a 3-pointer
+                agg_dist_df = agg_dist_df.drop(agg_dist_df[(agg_dist_df.distance<22) & (agg_dist_df.shot_type==3)].index)
+                # drop points that are more than 23 ft from basket yet labeled a 2-pointer
+                agg_dist_df = agg_dist_df.drop(agg_dist_df[(agg_dist_df.distance>23) & (agg_dist_df.shot_type==2)].index)
+                
+                print(f'agg_dist_df.head(): {agg_dist_df.head()}')
                 print(f'DF aggregated in {time.time() - start_time} sec')
 
-                custom_color_map = {
-                    '2-pointer': 'dodgerblue',
-                    '3-pointer': '#fc8d59',
-                }
-
-                fig = px.scatter(agg_dist_df,
-                                x='distance',
-                                y='average_made',
-                                size='count_shots',
-                                size_max=40, 
-                                color='shot_type_label',
-                                color_discrete_map=custom_color_map,  # Use the custom color map
-                                # hover_name='distance',
-                                labels={'distance': 'Distance (feet)', 'average_made': 'FG%', 'shot_type_label': 'Shot Type',},
-                                title='Shooting Accuracy by Distance from Basket',
-                                )
+                fig = go.Figure(data=[go.Scatter(
+                    x=agg_dist_df['distance'],
+                    y=agg_dist_df['average_made'],
+                    mode='markers',
+                    marker=dict(
+                        size=agg_dist_df['count_shots'],
+                        sizemode='area',
+                        sizeref=(2. * max(agg_dist_df['count_shots'])/(40 ** 2)),
+                        color=['dodgerblue' if shot_type == '2-pointer' else '#fc8d59' 
+                            for shot_type in agg_dist_df['shot_type_label']],
+                        sizemin=2
+                    ),
+                    text=agg_dist_df['distance'], 
+                )])
+                fig.update_layout(
+                    title='Shooting Accuracy by Distance from Basket',
+                    xaxis_title='Distance (feet)',
+                    yaxis_title='FG%',
+                )
                 fig.update_traces(hovertemplate=(
                     "<b>%{x} feet</b><br>"
                     "FG%: %{y:.2%}<br>"
@@ -192,17 +201,15 @@ def create_plot_callbacks(dash_app, conn, cache):
                     hoverinfo='x+y+z',
                     hovertemplate=(
                         f"<b>{metric}</b>: %{{z:.2%}}<br>"
-                        # f"X: %{{x}}<br>"
-                        # f"Y: %{{y}}"
                         "<extra></extra>"
                     ),
                     xbins=dict(start=-250, end=250, size=x_bin_size),
                     ybins=dict(start=-52.5, end=417.5, size=y_bin_size),
-                    showscale=False,
-                    # colorbar=dict(title=metric),
-                    # colorbar_xpad=False,
-                    # colorbar_ypad=False,
-                    # colorbar_tickformat = '.0%'
+                    showscale=True,
+                    colorbar=dict(title='FG%'),
+                    colorbar_xpad=False,
+                    colorbar_ypad=False,
+                    colorbar_tickformat = '.0%'
                 ))
                 shotmap_fig.update_layout(
                     title='Shooting Accuracy Shot Map',
@@ -330,7 +337,7 @@ def create_plot_callbacks(dash_app, conn, cache):
             fig_moving_avg.update_layout(
                 title='Shooting Accuracy 3-day Moving Average',
                 plot_bgcolor='white',
-                height=600,
+                height=800,
                 annotations=[
                     dict(
                         yanchor="bottom",
@@ -341,18 +348,18 @@ def create_plot_callbacks(dash_app, conn, cache):
                         yref='paper',
                         text='2-Pointer',
                         showarrow=False,
-                        font=dict(size=12)
+                        font=dict(size=14)
                     ),
                     dict(
                         yanchor="bottom",
-                        y=0.45,
+                        y=0.4,
                         xanchor="right",
                         x=0.99,
                         xref='paper', 
                         yref='paper',
                         text='3-Pointer',
                         showarrow=False,
-                        font=dict(size=12)
+                        font=dict(size=14)
                     )
                 ]
             )
