@@ -49,7 +49,6 @@ def create_plot_callbacks(dash_app, conn, cache):
                 {'and team = (?)' if team != 'all_values' else ''}
                 {'and year = (?)' if year != 'all_values' else ''}
         """
-        # print(f'sql_query: \n{sql_query}')
 
         params = []
         if player_name and player_name != 'all_values':
@@ -296,8 +295,6 @@ def create_plot_callbacks(dash_app, conn, cache):
                             dict(count=6, label="6m", step="month", stepmode="backward"),
                             dict(count=1, label="YTD", step="year", stepmode="todate"),
                             dict(count=1, label="1y", step="year", stepmode="backward"),
-                            dict(count=5, label="5y", step="year", stepmode="backward"),
-                            dict(count=10, label="10y", step="year", stepmode="backward"),
                             dict(step="all")
                         ])
                     )

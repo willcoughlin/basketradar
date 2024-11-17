@@ -90,31 +90,28 @@ dashboard_content = dbc.Container(
         dbc.Row(
             [
                 dbc.Col(
-                    plots.distance_scatter, 
-                    md=6,
-                    # className="mx-auto" 
-                ),
-                dbc.Col(
-                    plots.moving_average_2pt, 
-                    md=6,
-                    # className="mx-auto"
-                ),
-            ],
-            style={'height': '500px '},
-            align="center",
-            justify="center",
-        ),
-        dbc.Row(
-            [
-                dbc.Col(
-                    plots.shot_map,
+                    plots.shot_map, 
                     md=6,
                     className='d-flex justify-content-center',
                 ),
                 dbc.Col(
-                    plots.moving_average_3pt, 
-                    md=6,
-                    className='h-100',
+                    [
+                        dbc.Row(
+                            dbc.Col(
+                                plots.distance_scatter,
+                                md=12,
+                                # className="mx-auto" 
+                            )
+                        ),
+                        dbc.Row(
+                            dbc.Col(
+                                plots.moving_average,
+                                md=12,  
+                                className='h-100',
+                            )
+                        ),
+                    ],
+                    md=6 
                 ),
             ],
             style={'height': '500px '},
@@ -125,6 +122,7 @@ dashboard_content = dbc.Container(
     fluid=True,
     class_name="mt-2"
 )
+
 
 
 dash_app.layout = html.Div(
