@@ -11,6 +11,7 @@ from flask_caching import Cache
 import argparse
 
 dash_app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP, dbc.icons.BOOTSTRAP, './assets/custom.css'],  suppress_callback_exceptions=True)
+dash_app.title = 'BasketRadar'
 app = dash_app.server
 
 cache = Cache(app, config={
