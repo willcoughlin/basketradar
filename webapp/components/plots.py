@@ -151,8 +151,8 @@ def create_plot_callbacks(dash_app, conn, cache):
                 ))
                 fig.update_layout(
                     plot_bgcolor="white",
-                    height=400,
-                    # margin={'l': 40, 'b': 40, 't': 40, 'r': 0},
+                    height=250,
+                    margin={'l': 40, 'b': 40, 't': 40, 'r': 0},
                     yaxis=dict(
                         title='FG%',
                         tickformat='2%',
@@ -190,7 +190,7 @@ def create_plot_callbacks(dash_app, conn, cache):
                 x_bin_size = 15
                 y_bin_size = 15
                 shotmap_fig = go.Figure()
-                draw_plotly_court(shotmap_fig, fig_width=1050, margins=0)
+                draw_plotly_court(shotmap_fig, fig_width=850, margins=0)
                 shotmap_fig.add_trace(go.Histogram2dContour(
                     x=dff['shotX_'],
                     y=dff['shotY_'],
@@ -223,7 +223,7 @@ def create_plot_callbacks(dash_app, conn, cache):
                 shotmap_fig.update_layout(
                     title=dict(
                         text='Shooting Accuracy Shot Map',
-                        x=0,
+                        x=0.06,
                         y=0.99,
                         xanchor='left',  
                         yanchor='top'
@@ -351,7 +351,7 @@ def create_plot_callbacks(dash_app, conn, cache):
             fig_moving_avg.update_layout(
                 title='Shooting Accuracy 3-day Moving Average',
                 plot_bgcolor='white',
-                height=700,
+                height=550,
                 annotations=[
                     dict(
                         yanchor="bottom",

@@ -102,28 +102,26 @@ dashboard_content = dbc.Container(
                     plots.shot_map, 
                     md=6,
                     className='d-flex justify-content-center',
+                    # style={"background-color": "lightblue"},
                 ),
                 dbc.Col(
                     [
-                        dbc.Row(
-                            dbc.Col(
-                                plots.distance_scatter,
-                                # md=12,
-                                # className="mx-auto" 
-                            )
-                        ),
-                        dbc.Row(
-                            dbc.Col(
-                                plots.moving_average,
-                                # md=12,  
-                                # className='h-100',
-                            )
-                        ),
+                        # dbc.Row(dbc.Col(plots.distance_scatter,md=12),className="h-25"),
+                        # dbc.Row(dbc.Col(plots.moving_average,md=12),className="h-75"),                        
+                        dbc.Row(dbc.Col(plots.distance_scatter,md=12),align="top",style={'height': '250px',
+                                                                                        #  "background-color": "lightgreen"
+                                                                                         }),
+                        dbc.Row(dbc.Col(plots.moving_average,md=12),align="bottom",style={'height': '550px',
+                                                                                        #   "background-color": "blue"
+                                                                                          }),
                     ],
-                    md=6
+                    md=6,
+                    # style={"maxWidth":"100%","height":"auto","background-color": "blue"}
                 ),
             ],
-            style={'height': '500px '},
+            style={'height': '800px',
+                #    "background-color": "lightpink"
+                   },
             align="center",
             justify="center",
         ),
@@ -131,8 +129,6 @@ dashboard_content = dbc.Container(
     fluid=True,
     class_name="mt-2"
 )
-
-
 
 dash_app.layout = html.Div(
     [
