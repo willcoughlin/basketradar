@@ -18,3 +18,13 @@
     display: flex;
     align-items: center;
 }
+
+.similar-player-link a {
+    display: unset;
+    vertical-align: unset;
+}
+
+#dengrogram .plot-container {
+    display: flex;
+    justify-content: center;
+}

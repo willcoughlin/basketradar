@@ -10,7 +10,7 @@ import requests
 from flask_caching import Cache
 import argparse
 
-dash_app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP, './assets/custom.css'],  suppress_callback_exceptions=True)
+dash_app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP, dbc.icons.BOOTSTRAP, './assets/custom.css'],  suppress_callback_exceptions=True)
 app = dash_app.server
 
 cache = Cache(app, config={
@@ -62,24 +62,33 @@ profile_content = dbc.Container(
                         style={'display': 'flex', 'align-items': 'center', 'justify-content': 'left'}),
                 dbc.Col(
                     [
-                        dbc.Row([dbc.Col(html.H5('Similarity Explorer'), md=12)]),
                         dbc.Row(
                             [
-                                dbc.Col(profile.similarity_filters(), md=4),
+                                dbc.Col(html.H5('Similarity Explorer'), md=6),
+                                
+                            ]
+                        ),
+                        dbc.Row(
+                            [
+                                dbc.Col(profile.similarity_filters(), md=5),
                                 dbc.Col([
                                     html.H6('Most Similar:'),
-                                    profile.similarity_list()
-                                ], md=8)
+                                    profile.similarity_list(),
+                                    html.H6('Least Similar:'),
+                                    profile.dissimilarity_list()
+                                ], md=7)
                             ]
-                        )
+                        ),
+                        dbc.Row([dbc.Col(profile.launch_modal_btn(), md=10)])
                     ],
-                    md=4,
+                    md=5,
                     id='similarity-filter-col',
                     className='d-none'
                 ),
             ],
             style={'height': '300px '}
         ),
+        profile.similarity_modal()
     ],
     fluid=True,
     class_name="mt-2"
@@ -90,34 +99,29 @@ dashboard_content = dbc.Container(
         dbc.Row(
             [
                 dbc.Col(
-                    plots.distance_scatter, 
-                    md=6,
-                    # className="mx-auto" 
-                ),
-                dbc.Col(
-                    plots.moving_average_2pt, 
-                    md=6,
-                    # className="mx-auto"
-                ),
-            ],
-            style={'height': '500px '},
-            align="center",
-            justify="center",
-        ),
-        dbc.Row(
-            [
-                dbc.Col(
-                    plots.shot_map,
+                    plots.shot_map, 
                     md=6,
                     className='d-flex justify-content-center',
+                    # style={"background-color": "lightblue"},
                 ),
                 dbc.Col(
-                    plots.moving_average_3pt, 
+                    [
+                        # dbc.Row(dbc.Col(plots.distance_scatter,md=12),className="h-25"),
+                        # dbc.Row(dbc.Col(plots.moving_average,md=12),className="h-75"),                        
+                        dbc.Row(dbc.Col(plots.distance_scatter,md=12),align="top",style={'height': '250px',
+                                                                                        #  "background-color": "lightgreen"
+                                                                                         }),
+                        dbc.Row(dbc.Col(plots.moving_average,md=12),align="bottom",style={'height': '550px',
+                                                                                        #   "background-color": "blue"
+                                                                                          }),
+                    ],
                     md=6,
-                    className='h-100',
+                    # style={"maxWidth":"100%","height":"auto","background-color": "blue"}
                 ),
             ],
-            style={'height': '500px '},
+            style={'height': '800px',
+                #    "background-color": "lightpink"
+                   },
             align="center",
             justify="center",
         ),
@@ -125,7 +129,6 @@ dashboard_content = dbc.Container(
     fluid=True,
     class_name="mt-2"
 )
-
 
 dash_app.layout = html.Div(
     [
@@ -140,7 +143,7 @@ profile.create_filter_callbacks(dash_app, player_images, team_images, conn)
 profile.create_slider_callbacks(dash_app, conn)
 
 similarity_calculators = profile.create_similarity_calc_funcs(cache, conn)
-profile.create_similarity_list_callbacks(dash_app, similarity_calculators)
+profile.create_similarity_list_callbacks(dash_app, similarity_calculators, conn)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
