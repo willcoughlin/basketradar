@@ -7,6 +7,7 @@ import urllib.parse
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics.pairwise import euclidean_distances
+import scipy.cluster.hierarchy as sch
 
 # Basic filters
 
@@ -368,13 +369,36 @@ def similarity_modal():
     )
     return modal
 
-def create_similarity_dendrogram(df, selected_player, similar_players):
-    X = df.drop(columns='player').values
+def create_similarity_dendrogram(df, similarity_attributes, selected_player, similar_players):
+    X = df[similarity_attributes].values
     y = df.player.values
-    
+    similar_player_names = similar_players.index
+
     X_scaled = StandardScaler().fit_transform(X)
-    
-    fig = create_dendrogram(X_scaled, labels=y, color_threshold=100, orientation='left')
+
+    # Compute threshold of furthest "similar player"
+    # furthest_similar = similar_players.index[similar_players.argmax()]
+    # idx_tgt = np.argwhere(y == selected_player).astype(np.float64)[0][0]
+    # idx_sim = np.argwhere(y == furthest_similar).astype(np.float64)[0][0]
+    # n = X.shape[0]
+    # Z = sch.linkage(X_scaled, 'centroid')  
+    # cluster_tgt = idx_tgt
+    # cluster_sim = idx_sim
+    # while cluster_sim != cluster_tgt:
+    #     print(cluster_tgt, cluster_sim)
+    #     cluster_tgt = n+[(i, row) for i, row in enumerate(Z) if cluster_tgt in row[:2]][0][0]
+    #     cluster_sim = n+[(i, row) for i, row in enumerate(Z) if cluster_sim in row[:2]][0][0]
+    # linkage_idx = cluster_tgt-n
+    # print(Z[linkage_idx][2])
+    # color_thres = Z[linkage_idx][2] + 0.1
+    # print(color_thres)
+    color_thres = 100
+
+    fig = create_dendrogram(X_scaled, 
+                            labels=y, 
+                            color_threshold=color_thres, 
+                            orientation='left',
+                            linkagefun=lambda x: sch.linkage(x, 'centroid'))
     
     tick_idx = np.argwhere(fig.layout.yaxis.ticktext == selected_player)[0][0]
 
@@ -390,6 +414,14 @@ def create_similarity_dendrogram(df, selected_player, similar_players):
         # 'width': 900,
     # })
 
+    def tick_text(player):
+        if player == selected_player: 
+            return f'<span style="color: #0d6efd; font-weight: bold;">{player}</span>' 
+        elif player in similar_player_names:
+            return f'<span style="color: #0d6efd">{player}</span>' 
+        else: 
+            return player
+    fig.layout.yaxis.ticktext = [tick_text(t) for t in fig.layout.yaxis.ticktext]
     fig.update_layout(autosize=True, margin=dict(t=50, b=50))
 
     return dcc.Graph(figure=fig, id='dendrogram', style={'width': '100%'})
@@ -527,7 +559,7 @@ def create_similarity_list_callbacks(dash_app, similarity_calculators, conn):
             return (
                 [player_list_btn(i, result, {"player": result}) for i, result in enumerate(top.index)], 
                 [player_list_btn(i, result, {"player": result}, dissimilar=True) for i, result in enumerate(bottom.index)],
-                create_similarity_dendrogram(df, selected_player, top.index)
+                create_similarity_dendrogram(df, similarity_attributes, selected_player, top)
             )
         
         # Grouped by player and team
@@ -544,7 +576,7 @@ def create_similarity_list_callbacks(dash_app, similarity_calculators, conn):
             return (
                 [player_list_btn(i, f'{player} ({team})',{"player": player, "team": team}) for i, (player, team) in enumerate(top.index)], 
                 [player_list_btn(i, f'{player} ({team})',{"player": player, "team": team}, dissimilar=True) for i, (player, team) in enumerate(bottom.index)], 
-                create_similarity_dendrogram(df, selected_player, top.index)
+                create_similarity_dendrogram(df, similarity_attributes, selected_player, top)
             )
         
         # Grouped by player and year
@@ -562,7 +594,7 @@ def create_similarity_list_callbacks(dash_app, similarity_calculators, conn):
             return (
                 [player_list_btn(i, f'{player} ({year})',{"player": player, "year": year}) for i, (player, year) in enumerate(top.index)], 
                 [player_list_btn(i, f'{player} ({year})',{"player": player, "year": year}, dissimilar=False) for i, (player, year) in enumerate(bottom.index)], 
-                create_similarity_dendrogram(df, selected_player, top.index)
+                create_similarity_dendrogram(df, similarity_attributes, selected_player, top)
             )
         
         # Grouped by player, team, and year
@@ -584,7 +616,7 @@ def create_similarity_list_callbacks(dash_app, similarity_calculators, conn):
             return (
                 [player_list_btn(i, f'{player} ({team} {year})', {"player": player, "team": team, "year": year}) for i, (player, team, year) in enumerate(top.index)], 
                 [player_list_btn(i, f'{player} ({team} {year})', {"player": player, "team": team, "year": year}, dissimilar=False) for i, (player, team, year) in enumerate(bottom.index)], 
-                create_similarity_dendrogram(df, selected_player, top.index)
+                create_similarity_dendrogram(df, similarity_attributes, selected_player, top)
             )
                 
     @dash_app.callback(
